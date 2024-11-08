@@ -1,0 +1,25 @@
+@startuml
+' Defining all classes
+class Monster
+Monster : int testVar
+Monster : void Test()
+
+class Spell
+Spell : int testVar
+Spell : void Test()
+
+class Package
+Package : int testVar
+Package : void Test()
+
+class Deck
+Deck : int testVar
+Deck : void Test()
+
+class User
+User : int testVar
+User : void Test()
+
+' Define all Relations
+' Monster <-- Spell
+@enduml
