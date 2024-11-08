@@ -1,25 +1,118 @@
 @startuml
 ' Defining all classes
-class Monster
-Monster : int testVar
-Monster : void Test()
+class game.Monster{
+    - int testVar
+    + int testVar
+    + void Test()
+}
 
-class Spell
-Spell : int testVar
-Spell : void Test()
+class game.Spell{
+    - int testVar
+    + int testVar
+    + void Test()
+}
 
-class Package
-Package : int testVar
-Package : void Test()
+class game.Card{
+    - int testVar
+    + int testVar
+    + void Test()
+}
 
-class Deck
-Deck : int testVar
-Deck : void Test()
+class game.Package{
+    - int testVar
+    + int testVar
+    + void Test()
+}
 
-class User
-User : int testVar
-User : void Test()
+class game.Deck{
+    - int testVar
+    + int testVar
+    + void Test()
+}
+
+class game.Battle{
+    - int testVar
+    + int testVar
+    + void Test()
+}
+
+class game.Trade{
+    - int testVar
+    + int testVar
+    + void Test()
+}
+
+
+class shared.Player{
+    - int testVar
+    + int testVar
+    + void Test()
+}
+
+class socket.Server{
+    - int testVar
+    + int testVar
+    + void Test()
+}
+
+class socket.Reader{
+    - int testVar
+    + int testVar
+    + void Test()
+}
+
+class socket.Writer{
+    - int testVar
+    + int testVar
+    + void Test()
+}
+
+class socket.Validator{
+    - int testVar
+    + int testVar
+    + void Test()
+}
+
+class persistence.DatabaseConnector {
+    - int testVar
+    + int testVar
+    + void Test()
+}
+
+class persistence.DatabaseReader {
+    - int testVar
+    + int testVar
+    + void Test()
+}
+
+class persistence.DatabaseWriter {
+    - int testVar
+    + int testVar
+    + void Test()
+}
 
 ' Define all Relations
+Card <|-- Spell
+Card <|-- Monster
+Card --> Trade : can be
+Deck --> Battle : is used in
+Card -left-> Deck : is in
+Battle --> Player : is played by
+Package --> Player : is opened by
+
+DatabaseConnector <-- DatabaseReader: uses
+DatabaseConnector <-- DatabaseWriter: uses
+
+Server --> Reader : uses
+Server --> Writer : uses
+Server --> Validator : uses
+
+socket --> game : implements
+socket --> persistence : uses
+
 ' Monster <-- Spell
+' User <.. Spell
+' Package <|-- Spell
+' Deck <|.. Spell
+
 @enduml
