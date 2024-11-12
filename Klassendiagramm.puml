@@ -98,7 +98,7 @@ Card <|-- Monster
 Card --* Trade
 Deck --* Battle : is used in
 Card -left-* Deck : is in
-Battle --* Player
+Battle --o Player
 Package --o Player
 
 DatabaseConnector o-- DatabaseReader: uses
