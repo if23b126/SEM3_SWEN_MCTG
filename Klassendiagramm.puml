@@ -1,114 +1,119 @@
 @startuml
 ' Defining all classes
+enum game.Element{
+    fire
+    water
+    normal
+}
+
 class game.Monster{
-    - int testVar
-    + int testVar
-    + void Test()
+    - String name
+    - int damage
+    - Element type
 }
 
 class game.Spell{
-    - int testVar
-    + int testVar
-    + void Test()
+    - String name
+    - int damage
+    - Element type
 }
 
 class game.Card{
-    - int testVar
-    + int testVar
-    + void Test()
+    - String name
+    - int damage
+    - Element type
 }
 
 class game.Package{
-    - int testVar
-    + int testVar
-    + void Test()
+    - List<Card> cards
+
+    + generatePackage()
+    + openPackage()
 }
 
 class game.Deck{
-    - int testVar
-    + int testVar
-    + void Test()
+    - List<Card> cards
+
+    + PickDeck(List<Card> cards)
 }
 
 class game.Battle{
-    - int testVar
-    + int testVar
-    + void Test()
+    + GoToBattle(Player fighterOne, Player fighterTwo)
 }
 
 class game.Trade{
-    - int testVar
-    + int testVar
-    + void Test()
+    + SetTrade(Player trader, Card cardWanted)
+    + AcceptTrade(Player trader, Card cardOffered)
+    + TradeCards(Player traderOne, Player traderTwoe, Card cardOne, Card cardTwo)
 }
 
 
 class shared.Player{
-    - int testVar
-    + int testVar
-    + void Test()
+    - String username
+    - String encryptedPassword
+    - Deck activeDeck
 }
 
 class socket.Server{
-    - int testVar
-    + int testVar
-    + void Test()
+    - Socket serverSocket
+    - Socket clientSocket
+    - String token
+
+    + StartServer()
 }
 
 class socket.Reader{
-    - int testVar
-    + int testVar
-    + void Test()
+    - Socket clientSocket
 }
 
 class socket.Writer{
-    - int testVar
-    + int testVar
-    + void Test()
+    - Socket clientSocket
 }
 
 class socket.Validator{
-    - int testVar
-    + int testVar
-    + void Test()
+    + VerifyUser(String username, String token)
 }
 
 class persistence.DatabaseConnector {
-    - int testVar
-    + int testVar
-    + void Test()
+    - String usernameRead
+    - String passwordRead
+    - String usernameWrite
+    - String passwordWrite
+
+    + ExecuteRead(String command)
+    + ExecuteWrite(String command, String[] data)
 }
 
 class persistence.DatabaseReader {
-    - int testVar
-    + int testVar
-    + void Test()
+
 }
 
 class persistence.DatabaseWriter {
-    - int testVar
-    + int testVar
-    + void Test()
+
 }
 
 ' Define all Relations
 Card <|-- Spell
 Card <|-- Monster
-Card --> Trade : can be
-Deck --> Battle : is used in
-Card -left-> Deck : is in
-Battle --> Player : is played by
-Package --> Player : is opened by
+Card --* Trade
+Deck --* Battle : is used in
+Card -left-* Deck : is in
+Battle --* Player
+Package --o Player
 
-DatabaseConnector <-- DatabaseReader: uses
-DatabaseConnector <-- DatabaseWriter: uses
+DatabaseConnector o-- DatabaseReader: uses
+DatabaseConnector o-- DatabaseWriter: uses
 
-Server --> Reader : uses
-Server --> Writer : uses
-Server --> Validator : uses
+Server o-- Reader : uses
+Server o-- Writer : uses
+Server o-- Validator : uses
 
-socket --> game : implements
-socket --> persistence : uses
+Server --> game : implements
+Server --> persistence : uses
+
+Element -- Card
+Element -- Monster
+Element -- Spell
 
 ' Monster <-- Spell
 ' User <.. Spell
