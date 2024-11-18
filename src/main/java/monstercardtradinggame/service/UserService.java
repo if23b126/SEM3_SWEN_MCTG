@@ -5,23 +5,30 @@ import httpserver.http.HttpStatus;
 import httpserver.server.Request;
 import httpserver.server.Response;
 import monstercardtradinggame.model.User;
-/*import monstercardtradinggame.persistence.UnitOfWork;
-import monstercardtradinggame.persistence.repository.WeatherRepository;
-import monstercardtradinggame.persistence.repository.WeatherRepositoryImpl;*/
+import monstercardtradinggame.persistence.UnitOfWork;
+import monstercardtradinggame.persistence.repository.UserRepository;
+import monstercardtradinggame.persistence.repository.UserRepositoryImpl;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.io.IOException;
+import java.util.Base64;
 import java.util.Collections;
 
 public class UserService extends AbstractService {
 
-    public UserService() {}
+    private UserRepository userRepository;
+    private Base64.Encoder encoder;
+
+    public UserService() {
+        userRepository = new UserRepositoryImpl(new UnitOfWork());
+        encoder = Base64.getEncoder();
+    }
 
     // POST /user/login
     public Response loginUser(Request request) {
-        User user = new User("MonsterSmasher", "securePW");
+        //User user = new User("MonsterSmasher", "securePW");
         User loginTry = null;
         try {
             loginTry = this.getObjectMapper().readValue(request.getBody(), User.class);
@@ -29,11 +36,15 @@ public class UserService extends AbstractService {
             throw new RuntimeException(e);
         }
 
-        if (user.getUsername().equals(loginTry.getUsername()) && user.getPassword().equals(loginTry.getPassword())) {
-            return new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "login successful");
-        }
+        String password = encoder.encodeToString(loginTry.getPassword().getBytes());
+        String token = userRepository.Login(loginTry.getUsername(), password);
 
-        return new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "login failed");
+        if (token == null) {
+            return new Response(HttpStatus.UNAUTHORIZED);
+        } else
+        {
+            return new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, token);
+        }
     }
 
     // POST /user/logout
