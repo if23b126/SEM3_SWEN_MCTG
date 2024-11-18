@@ -1,7 +1,7 @@
-package at.fhtw.httpserver.server;
+package httpserver.server;
 
-import at.fhtw.httpserver.utils.RequestHandler;
-import at.fhtw.httpserver.utils.Router;
+import httpserver.utils.RequestHandler;
+import httpserver.utils.Router;
 
 import java.io.IOException;
 import java.net.ServerSocket;

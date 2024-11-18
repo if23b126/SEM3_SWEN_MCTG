@@ -1,7 +1,7 @@
-package at.fhtw.httpserver.server;
+package httpserver.server;
 
-import at.fhtw.httpserver.http.ContentType;
-import at.fhtw.httpserver.http.HttpStatus;
+import httpserver.http.ContentType;
+import httpserver.http.HttpStatus;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;

@@ -1,4 +1,4 @@
-package at.fhtw.httpserver.server;
+package httpserver.server;
 
 import java.util.HashMap;
 import java.util.Map;

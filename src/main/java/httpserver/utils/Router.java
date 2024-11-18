@@ -1,6 +1,6 @@
-package at.fhtw.httpserver.utils;
+package httpserver.utils;
 
-import at.fhtw.httpserver.server.RestController;
+import httpserver.server.RestController;
 
 import java.util.HashMap;
 import java.util.Map;

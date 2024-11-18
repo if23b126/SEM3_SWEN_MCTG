@@ -1,7 +1,7 @@
-package at.fhtw.httpserver.utils;
+package httpserver.utils;
 
-import at.fhtw.httpserver.http.Method;
-import at.fhtw.httpserver.server.Request;
+import httpserver.http.Method;
+import httpserver.server.Request;
 
 import java.io.BufferedReader;
 import java.io.IOException;

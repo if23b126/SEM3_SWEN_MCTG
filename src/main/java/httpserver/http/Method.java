@@ -1,4 +1,4 @@
-package at.fhtw.httpserver.http;
+package httpserver.http;
 
 public enum Method {
     GET,

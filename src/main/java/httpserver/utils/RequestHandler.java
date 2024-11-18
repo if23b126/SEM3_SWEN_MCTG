@@ -1,9 +1,9 @@
-package at.fhtw.httpserver.utils;
+package httpserver.utils;
 
-import at.fhtw.httpserver.http.ContentType;
-import at.fhtw.httpserver.http.HttpStatus;
-import at.fhtw.httpserver.server.Request;
-import at.fhtw.httpserver.server.Response;
+import httpserver.http.ContentType;
+import httpserver.http.HttpStatus;
+import httpserver.server.Request;
+import httpserver.server.Response;
 
 import java.io.BufferedReader;
 import java.io.IOException;

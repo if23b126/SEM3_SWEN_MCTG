@@ -1,6 +1,6 @@
-package at.fhtw.httpserver.server;
+package httpserver.server;
 
-import at.fhtw.httpserver.http.Method;
+import httpserver.http.Method;
 
 import java.util.ArrayList;
 import java.util.List;
