@@ -1,6 +1,7 @@
 import httpserver.server.Server;
 import httpserver.utils.Router;
 import monstercardtradinggame.controller.EchoController;
+import monstercardtradinggame.controller.UserController;
 
 import java.io.IOException;
 
@@ -17,6 +18,7 @@ public class Main {
     private static Router configureRouter() {
         Router router = new Router();
         router.addService("/echo", new EchoController());
+        router.addService("/user", new UserController());
 
         return router;
     }
