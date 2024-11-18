@@ -49,7 +49,20 @@ public class UserService extends AbstractService {
 
     // POST /user/logout
     public Response logoutUser(Request request) {
-        return new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "logout successful");
+        User user = null;
+        try {
+            user = this.getObjectMapper().readValue(request.getBody(), User.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        Boolean result = userRepository.Logout(user.getToken());
+
+        if (result) {
+            return new Response(HttpStatus.OK);
+        } else {
+            return new Response(HttpStatus.UNAUTHORIZED);
+        }
     }
 
     // POST /user/register
@@ -61,6 +74,13 @@ public class UserService extends AbstractService {
             throw new RuntimeException(e);
         }
 
-        return new Response(HttpStatus.CREATED, ContentType.PLAIN_TEXT, "User Created");
+        String password = encoder.encodeToString(register.getPassword().getBytes());
+        Boolean result = userRepository.Register(register.getUsername(), password);
+
+        if (result) {
+            return new Response(HttpStatus.OK);
+        } else {
+            return new Response(HttpStatus.UNAUTHORIZED);
+        }
     }
 }

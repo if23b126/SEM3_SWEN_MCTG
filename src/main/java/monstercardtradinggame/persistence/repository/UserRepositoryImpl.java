@@ -58,11 +58,40 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public Boolean Logout(String token) {
-        return null;
+        Boolean result = false;
+        try (PreparedStatement delete = this.unitOfWork.prepareStatement("""
+                DELETE FROM mctg.currently_logged_in 
+                where token = ?
+                """))
+        {
+            delete.setString(1, token);
+            delete.executeUpdate();
+            this.unitOfWork.commitTransaction();
+            result = true;
+        } catch(SQLException e) {
+            throw new DataAccessException("Logout SQL nicht erfolgreich", e);
+        }
+
+        return result;
     }
 
     @Override
     public Boolean Register(String username, String password) {
-        return null;
+        Boolean result = false;
+        try (PreparedStatement insert = this.unitOfWork.prepareStatement("""
+                INSERT into mctg.users (username, password)
+                values (?, ?)
+                """))
+        {
+            insert.setString(1, username);
+            insert.setString(2, password);
+            insert.executeUpdate();
+            this.unitOfWork.commitTransaction();
+            result = true;
+        } catch(SQLException e){
+            throw new DataAccessException("Register SQL nicht erfolgreich", e);
+        }
+
+        return result;
     }
 }
