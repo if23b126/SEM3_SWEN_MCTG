@@ -17,16 +17,16 @@ public class UserController implements RestController {
 
     @Override
     public Response handleRequest(Request request) {
-        if (request.getMethod() == Method.POST && request.getPathname().equals("/user/login")) {
+        if (request.getMethod() == Method.POST && request.getPathname().equals("/sessions")) {
             return this.userService.loginUser(request);
-        } else if (request.getMethod() == Method.POST && request.getPathname().equals("/user/logout")) {
-            return this.userService.logoutUser(request);
-        } else if (request.getMethod() == Method.POST && request.getPathname().equals("/user/register")) {
+        //} else if (request.getMethod() == Method.POST && request.getPathname().equals("/user/logout")) {
+        //    return this.userService.logoutUser(request);
+        } else if (request.getMethod() == Method.POST && request.getPathname().equals("/users")) {
             return this.userService.registerUser(request);
+        } else {
+            return new Response(HttpStatus.BAD_REQUEST,
+                    ContentType.JSON,
+                    "[]");
         }
-
-        return new Response(HttpStatus.BAD_REQUEST,
-                            ContentType.JSON,
-                            "[]");
     }
 }

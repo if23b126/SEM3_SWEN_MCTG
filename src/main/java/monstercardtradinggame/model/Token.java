@@ -13,9 +13,13 @@ public class Token {
     }
 
 
-    public  String generateNewToken() {
+    public String generateNewToken() {
         byte[] randomBytes = new byte[24];
         secureRandom.nextBytes(randomBytes);
         return base64Encoder.encodeToString(randomBytes);
+    }
+
+    public String generateNewToken(String username) {
+        return username + "-mtcgToken";
     }
 }

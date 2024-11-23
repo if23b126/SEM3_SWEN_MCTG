@@ -48,6 +48,17 @@ public class UnitOfWork implements AutoCloseable {
         throw new DataAccessException("UnitOfWork hat keine aktive Connection zur Verfügung");
     }
 
+    public void rollbackTransaction() {
+
+        if (this.connection != null) {
+            try {
+                this.connection.rollback();
+            } catch (SQLException e) {
+                throw new DataAccessException("Rollback nicht erfolgreich", e);
+            }
+        }
+    }
+
     @Override
     public void close() throws Exception {
         this.finishWork();

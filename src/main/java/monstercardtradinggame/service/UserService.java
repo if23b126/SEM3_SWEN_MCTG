@@ -8,13 +8,9 @@ import monstercardtradinggame.model.User;
 import monstercardtradinggame.persistence.UnitOfWork;
 import monstercardtradinggame.persistence.repository.UserRepository;
 import monstercardtradinggame.persistence.repository.UserRepositoryImpl;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 
-import java.io.IOException;
 import java.util.Base64;
-import java.util.Collections;
 
 public class UserService extends AbstractService {
 
@@ -37,10 +33,10 @@ public class UserService extends AbstractService {
         }
 
         String password = encoder.encodeToString(loginTry.getPassword().getBytes());
-        String token = userRepository.Login(loginTry.getUsername(), password);
+        String token = userRepository.login(loginTry.getUsername(), password);
 
         if (token == null) {
-            return new Response(HttpStatus.UNAUTHORIZED);
+            return new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Login failed");
         } else
         {
             return new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, token);
@@ -56,7 +52,7 @@ public class UserService extends AbstractService {
             throw new RuntimeException(e);
         }
 
-        Boolean result = userRepository.Logout(user.getToken());
+        Boolean result = userRepository.logout(user.getToken());
 
         if (result) {
             return new Response(HttpStatus.OK);
@@ -75,12 +71,12 @@ public class UserService extends AbstractService {
         }
 
         String password = encoder.encodeToString(register.getPassword().getBytes());
-        Boolean result = userRepository.Register(register.getUsername(), password);
+        Boolean result = userRepository.register(register.getUsername(), password);
 
         if (result) {
-            return new Response(HttpStatus.OK);
+            return new Response(HttpStatus.CREATED);
         } else {
-            return new Response(HttpStatus.UNAUTHORIZED);
+            return new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "User already exists");
         }
     }
 }

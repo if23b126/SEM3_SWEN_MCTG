@@ -3,9 +3,9 @@ package monstercardtradinggame.model;
 import com.fasterxml.jackson.annotation.JsonAlias;
 
 public class User {
-    @JsonAlias({"username"})
+    @JsonAlias({"Username"})
     private String username;
-    @JsonAlias({"password"})
+    @JsonAlias({"Password"})
     private String password;
     @JsonAlias({"token"})
     private String token;
