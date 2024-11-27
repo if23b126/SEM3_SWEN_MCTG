@@ -44,7 +44,7 @@ public class UserRepositoryImpl implements UserRepository {
                 unitOfWork.commitTransaction(); // persists changes from local to db
             }
         }catch (SQLException e) {
-            this.unitOfWork.rollbackTransaction(); // if for some reason, the query fails after executeUpdate() this rolls back local state
+            this.unitOfWork.rollbackTransaction(); // if for some reason, the query fails after executeUpdate() this rolls back to state before commit
             throw new DataAccessException("Login SQL nicht erfolgreich", e);
         }
         return result;
@@ -69,7 +69,7 @@ public class UserRepositoryImpl implements UserRepository {
             this.unitOfWork.commitTransaction(); // persists changes from local to db
             result = true;
         } catch(SQLException e) {
-            this.unitOfWork.rollbackTransaction(); // if for some reason, the query fails after executeUpdate() this rolls back local state
+            this.unitOfWork.rollbackTransaction(); // if for some reason, the query fails after executeUpdate() this rolls back to state before commit
             throw new DataAccessException("Logout SQL nicht erfolgreich", e);
         }
 
@@ -100,7 +100,7 @@ public class UserRepositoryImpl implements UserRepository {
                 result = true;
             }
         } catch(SQLException e){
-            this.unitOfWork.rollbackTransaction(); // if for some reason, the query fails after executeUpdate() this rolls back local state
+            this.unitOfWork.rollbackTransaction(); // if for some reason, the query fails after executeUpdate() this rolls back to state before commit
             throw new DataAccessException("Register SQL nicht erfolgreich", e);
         }
 
