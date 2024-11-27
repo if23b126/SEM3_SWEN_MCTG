@@ -10,7 +10,7 @@ public enum DatabaseManager {
     public Connection getConnection() {
         try {
             return DriverManager.getConnection(
-                    "jdbc:postgresql://localhost:5432/root",
+                    "jdbc:postgresql://localhost:5432/mctg",
                     "mctg",
                     "mctg");
         } catch (SQLException e) {

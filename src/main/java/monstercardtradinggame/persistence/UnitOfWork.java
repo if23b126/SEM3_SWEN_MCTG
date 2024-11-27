@@ -16,6 +16,10 @@ public class UnitOfWork implements AutoCloseable {
         }
     }
 
+
+    /**
+     * commits the current local state to db to persist it
+     */
     public void commitTransaction() {
         if (this.connection != null) {
             try {
@@ -26,6 +30,10 @@ public class UnitOfWork implements AutoCloseable {
         }
     }
 
+
+    /**
+     * closes connection on Program exit
+     */
     public void finishWork() {
         if (this.connection != null) {
             try {
@@ -37,6 +45,12 @@ public class UnitOfWork implements AutoCloseable {
         }
     }
 
+
+    /**
+     * creates a new Prepared Statement, is needed for SQL-Queries where you need specific data
+     * @param sql
+     * @return prepared statement for manipulation
+     */
     public PreparedStatement prepareStatement(String sql) {
         if (this.connection != null) {
             try {
@@ -48,6 +62,10 @@ public class UnitOfWork implements AutoCloseable {
         throw new DataAccessException("UnitOfWork hat keine aktive Connection zur Verfügung");
     }
 
+
+    /**
+     * if for some reason, the query fails after changes had been written local, this rolls back to the last commit
+     */
     public void rollbackTransaction() {
 
         if (this.connection != null) {
@@ -58,6 +76,7 @@ public class UnitOfWork implements AutoCloseable {
             }
         }
     }
+
 
     @Override
     public void close() throws Exception {

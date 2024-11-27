@@ -15,12 +15,18 @@ public class UserController implements RestController {
         this.userService = new UserService();
     }
 
+
+    /**
+     * maps the different request to the methods they need to be processed, determines this by the path of the URL
+     * @param request
+     * @return new Response()
+     */
     @Override
     public Response handleRequest(Request request) {
         if (request.getMethod() == Method.POST && request.getPathname().equals("/sessions")) {
             return this.userService.loginUser(request);
-        //} else if (request.getMethod() == Method.POST && request.getPathname().equals("/user/logout")) {
-        //    return this.userService.logoutUser(request);
+        } else if (request.getMethod() == Method.POST && request.getPathname().equals("/users/logout")) {
+            return this.userService.logoutUser(request);
         } else if (request.getMethod() == Method.POST && request.getPathname().equals("/users")) {
             return this.userService.registerUser(request);
         } else {
