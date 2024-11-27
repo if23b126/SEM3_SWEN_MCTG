@@ -15,6 +15,10 @@ public class Main {
         }
     }
 
+    /**
+     * creates a new Route for the different paths of the URL
+     * @return new Router()
+     */
     private static Router configureRouter() {
         Router router = new Router();
         router.addService("/echo", new EchoController());

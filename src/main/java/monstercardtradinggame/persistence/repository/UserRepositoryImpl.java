@@ -8,8 +8,6 @@ import monstercardtradinggame.model.User;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
 
 public class UserRepositoryImpl implements UserRepository {
     private UnitOfWork unitOfWork;
@@ -19,58 +17,78 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
 
+    /**
+     * login method to persist in db, checks if user is existent, if so inserts it into currently_logged_in table
+     * @param username
+     * @param password
+     * @return null if failed, token-string if successful
+     */
     @Override
     public String login(String username, String password) {
         String result = null;
         try (PreparedStatement insert =
                 this.unitOfWork.prepareStatement("""
-                        INSERT INTO mctg.currently_logged_in(username, token)
+                        INSERT INTO public.currently_logged_in(username, token)
                         VALUES (?, ?)
                         """))
         {
 
             User user = userExists(username);
-            if (user.getPassword().equals(password) && tokenExists(username)) {
+            if (user.getPassword().equals(password) && !userLoggedIn(username)) {
                 Token token = new Token();
                 String generatedToken = token.generateNewToken(username);
                 insert.setString(1, username);
                 insert.setString(2, generatedToken);
                 insert.executeUpdate();
                 result = generatedToken;
-                unitOfWork.commitTransaction();
+                unitOfWork.commitTransaction(); // persists changes from local to db
             }
         }catch (SQLException e) {
-            this.unitOfWork.rollbackTransaction();
+            this.unitOfWork.rollbackTransaction(); // if for some reason, the query fails after executeUpdate() this rolls back local state
             throw new DataAccessException("Login SQL nicht erfolgreich", e);
         }
         return result;
     }
 
+
+    /**
+     * logs out a user, is passed a token, if token exists in currently_logged_in table, user gets logged out
+     * @param token
+     * @return true is successful, false if failed
+     */
     @Override
     public Boolean logout(String token) {
         Boolean result = false;
         try (PreparedStatement delete = this.unitOfWork.prepareStatement("""
-                DELETE FROM mctg.currently_logged_in 
+                DELETE FROM public.currently_logged_in 
                 where token = ?
                 """))
         {
             delete.setString(1, token);
             delete.executeUpdate();
-            this.unitOfWork.commitTransaction();
+            this.unitOfWork.commitTransaction(); // persists changes from local to db
             result = true;
         } catch(SQLException e) {
-            this.unitOfWork.rollbackTransaction();
+            this.unitOfWork.rollbackTransaction(); // if for some reason, the query fails after executeUpdate() this rolls back local state
             throw new DataAccessException("Logout SQL nicht erfolgreich", e);
         }
 
         return result;
     }
 
+
+    /**
+     * registers a new user, checks if username is already existent, if so return null, if username is not already in db,
+     * user will be inserted into users table
+     * @param username
+     * @param password
+     * @return true is successful, false if failed
+     */
     @Override
     public Boolean register(String username, String password) {
         Boolean result = false;
         try (PreparedStatement insert = this.unitOfWork.prepareStatement("""
-                INSERT into mctg.users (username, password)
+                INSERT into public.users (username, password)
                 values (?, ?)
                 """))
         {
@@ -78,11 +96,11 @@ public class UserRepositoryImpl implements UserRepository {
                 insert.setString(1, username);
                 insert.setString(2, password);
                 insert.executeUpdate();
-                this.unitOfWork.commitTransaction();
+                this.unitOfWork.commitTransaction(); // persists changes from local to db
                 result = true;
             }
         } catch(SQLException e){
-            this.unitOfWork.rollbackTransaction();
+            this.unitOfWork.rollbackTransaction(); // if for some reason, the query fails after executeUpdate() this rolls back local state
             throw new DataAccessException("Register SQL nicht erfolgreich", e);
         }
 
@@ -90,35 +108,45 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
 
+    /**
+     * checks if user exists, selects user from users table and queries for the username
+     * @param username
+     * @return User if found, null if not found
+     */
     public User userExists(String username) {
+        User user = null;
         try (PreparedStatement select = this.unitOfWork.prepareStatement("""
-                SELECT * FROM mctg.users
+                SELECT * FROM public.users
                         where username = ?
                 """)){
             select.setString(1, username);
             ResultSet rs = select.executeQuery();
-            User user = null;
             while(rs.next()) {
                 user = new User(rs.getString(1), rs.getString(2));
             }
-
-            return user;
         } catch(SQLException e) {
             throw new DataAccessException("User exists SQL nicht erfolgreich", e);
         }
+        return user;
     }
 
-    public Boolean tokenExists(String token) {
+
+    /**
+     * checks in db if a user is logged in, select from currently_logged_in table to determine
+     * @param username
+     * @return true if user is logged in, false if not
+     */
+    public Boolean userLoggedIn(String username) {
         try (PreparedStatement select = this.unitOfWork.prepareStatement("""
-                SELECT * FROM mctg.currently_logged_in
-                        where token = ?
+                SELECT * FROM public.currently_logged_in
+                        where username = ?
                 """)){
-            select.setString(1, token);
+            select.setString(1, username);
             ResultSet rs = select.executeQuery();
             return rs.next();
 
         } catch(SQLException e) {
-            throw new DataAccessException("Token exists SQL nicht erfolgreich", e);
+            throw new DataAccessException("userLoggedIn SQL nicht erfolgreich", e);
         }
     }
 }

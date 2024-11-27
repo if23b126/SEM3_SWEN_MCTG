@@ -22,18 +22,23 @@ public class UserService extends AbstractService {
         encoder = Base64.getEncoder();
     }
 
-    // POST /user/login
+
+    /**
+     * Post Request to login an already existing user, @param is the request with a JSON body, containing username and password
+     * @param request
+     * @return
+     */
     public Response loginUser(Request request) {
         //User user = new User("MonsterSmasher", "securePW");
         User loginTry = null;
         try {
-            loginTry = this.getObjectMapper().readValue(request.getBody(), User.class);
+            loginTry = this.getObjectMapper().readValue(request.getBody(), User.class); // mapper from body to User
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
 
-        String password = encoder.encodeToString(loginTry.getPassword().getBytes());
-        String token = userRepository.login(loginTry.getUsername(), password);
+        String password = encoder.encodeToString(loginTry.getPassword().getBytes()); // encodes pw to base64
+        String token = userRepository.login(loginTry.getUsername(), password); // persists login in db
 
         if (token == null) {
             return new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Login failed");
@@ -43,11 +48,16 @@ public class UserService extends AbstractService {
         }
     }
 
-    // POST /user/logout
+
+    /**
+     * Post Request to logout a user,  @param is the request with a JSON as body, containing the token
+     * @param request
+     * @return new Response()
+     */
     public Response logoutUser(Request request) {
         User user = null;
         try {
-            user = this.getObjectMapper().readValue(request.getBody(), User.class);
+            user = this.getObjectMapper().readValue(request.getBody(), User.class); // mapper from body to User
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -61,17 +71,22 @@ public class UserService extends AbstractService {
         }
     }
 
-    // POST /user/register
+
+    /**
+     * Post request to register a new User, @param is the request with a JSON body, containing new username and password
+     * @param request
+     * @return new Response()
+     */
     public Response registerUser(Request request) {
         User register = null;
         try {
-            register = this.getObjectMapper().readValue(request.getBody(), User.class);
+            register = this.getObjectMapper().readValue(request.getBody(), User.class); // mapper from body to User
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
 
-        String password = encoder.encodeToString(register.getPassword().getBytes());
-        Boolean result = userRepository.register(register.getUsername(), password);
+        String password = encoder.encodeToString(register.getPassword().getBytes()); // encodes pw to base64
+        Boolean result = userRepository.register(register.getUsername(), password); // persists user in db
 
         if (result) {
             return new Response(HttpStatus.CREATED);
