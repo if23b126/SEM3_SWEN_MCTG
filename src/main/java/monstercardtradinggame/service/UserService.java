@@ -38,7 +38,7 @@ public class UserService extends AbstractService {
         }
 
         String password = encoder.encodeToString(loginTry.getPassword().getBytes()); // encodes pw to base64
-        String token = userRepository.login(loginTry.getUsername(), password); // persists login in db
+        String token = userRepository.login(loginTry.getUsername().toLowerCase(), password); // persists login in db
 
         if (token == null) {
             return new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Login failed");
@@ -86,7 +86,7 @@ public class UserService extends AbstractService {
         }
 
         String password = encoder.encodeToString(register.getPassword().getBytes()); // encodes pw to base64
-        Boolean result = userRepository.register(register.getUsername(), password); // persists user in db
+        Boolean result = userRepository.register(register.getUsername().toLowerCase(), password); // persists user in db
 
         if (result) {
             return new Response(HttpStatus.CREATED);
