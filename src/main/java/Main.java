@@ -1,6 +1,7 @@
 import httpserver.server.Server;
 import httpserver.utils.Router;
 import monstercardtradinggame.controller.EchoController;
+import monstercardtradinggame.controller.GameController;
 import monstercardtradinggame.controller.UserController;
 
 import java.io.IOException;
@@ -24,6 +25,12 @@ public class Main {
         router.addService("/echo", new EchoController());
         router.addService("/users", new UserController());
         router.addService("/sessions", new UserController());
+        router.addService("/packages", new GameController());
+        router.addService("/transactions", new GameController());
+        router.addService("/cards", new GameController());
+        router.addService("/deck", new GameController());
+        router.addService("/stats", new GameController());
+        router.addService("/scoreboards", new GameController());
 
         return router;
     }
