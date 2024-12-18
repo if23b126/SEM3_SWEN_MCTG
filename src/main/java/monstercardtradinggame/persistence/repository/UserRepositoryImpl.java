@@ -108,6 +108,26 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
 
+    @Override
+    public Boolean checkIfUserIsLoggedIn(String token) {
+        Boolean result = false;
+        try (PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT * FROM public.currently_logged_in 
+                where token = ?
+                """))
+        {
+            select.setString(1, token);
+            ResultSet rs = select.executeQuery();
+            result = rs.next();
+        } catch(SQLException e){
+            this.unitOfWork.rollbackTransaction(); // if for some reason, the query fails after executeUpdate() this rolls back to state before commit
+            throw new DataAccessException("Register SQL nicht erfolgreich", e);
+        }
+
+        return result;
+    }
+
+
     /**
      * checks if user exists, selects user from users table and queries for the username
      * @param username

@@ -94,4 +94,13 @@ public class UserService extends AbstractService {
             return new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "User already exists");
         }
     }
+
+
+    public Response getUserInfo(Request request) {
+        return new Response(HttpStatus.OK);
+    }
+
+    public Response setUserInfo(Request request) {
+        return new Response(HttpStatus.OK);
+    }
 }

@@ -23,6 +23,28 @@ public class GameController implements RestController {
      */
     @Override
     public Response handleRequest(Request request) {
-        return null;
+        if (request.getMethod() == Method.POST && request.getPathname().equals("/packages")) {
+            return this.gameService.createPackage(request);
+        } else if (request.getMethod() == Method.POST && request.getPathname().equals("/transactions/packages")) {
+            return this.gameService.buyPackage(request);
+        } else if(request.getMethod() == Method.GET && request.getPathname().equals("/cards")) {
+            return this.gameService.getCards(request);
+        } else if (request.getMethod() == Method.GET && request.getPathname().equals("/deck")) {
+            if(request.getParams() != null) {
+                return this.gameService.getDeck(request, true);
+            } else {
+                return this.gameService.getDeck(request, false);
+            }
+        } else if(request.getMethod() == Method.PUT && request.getPathname().equals("/deck")) {
+            return this.gameService.putDeck(request);
+        } else if(request.getMethod() == Method.GET && request.getPathname().equals("/stats")) {
+            return this.gameService.getStats(request);
+        } else if(request.getMethod() == Method.GET && request.getPathname().equals("/scoreboards")) {
+            return this.gameService.getScoreboards(request);
+        } else {
+            return new Response(HttpStatus.BAD_REQUEST,
+                    ContentType.JSON,
+                    "[]");
+        }
     }
 }
