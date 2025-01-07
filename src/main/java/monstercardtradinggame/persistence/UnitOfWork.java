@@ -3,6 +3,7 @@ package monstercardtradinggame.persistence;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 public class UnitOfWork implements AutoCloseable {
 
@@ -55,6 +56,18 @@ public class UnitOfWork implements AutoCloseable {
         if (this.connection != null) {
             try {
                 return this.connection.prepareStatement(sql);
+            } catch (SQLException e) {
+                throw new DataAccessException("Erstellen eines PreparedStatements nicht erfolgreich", e);
+            }
+        }
+        throw new DataAccessException("UnitOfWork hat keine aktive Connection zur Verfügung");
+    }
+
+
+    public PreparedStatement prepareStatement(String sql, Boolean returnGeneratedKeys) {
+        if (this.connection != null) {
+            try {
+                return this.connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             } catch (SQLException e) {
                 throw new DataAccessException("Erstellen eines PreparedStatements nicht erfolgreich", e);
             }

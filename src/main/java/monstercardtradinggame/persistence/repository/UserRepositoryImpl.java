@@ -127,6 +127,52 @@ public class UserRepositoryImpl implements UserRepository {
         return result;
     }
 
+    @Override
+    public int getUserIDFromToken(String token) {
+        int result = -1;
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+            SELECT id
+            FROM public.currently_logged_in cli
+            LEFT JOIN public.users u on cli.username = u.username AND
+            token=?
+        """)){
+
+            select.setString(1, token);
+            ResultSet rs = select.executeQuery();
+            while (rs.next()) {
+                result = rs.getInt(1);
+            }
+
+        }catch (SQLException e){
+            throw new DataAccessException("Get username From Token SQL nicht erfolgreich", e);
+        }
+
+        return result;
+    }
+
+
+    @Override
+    public Boolean checkIfUserIsAdmin(String token) {
+        Boolean result = false;
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+            SELECT isAdmin
+            FROM public.currently_logged_in cli
+            LEFT JOIN public.users u on cli.username = u.username AND
+            token=?
+        """)){
+
+            select.setString(1, token);
+            ResultSet rs = select.executeQuery();
+            while (rs.next()) {
+                result = rs.getBoolean(1);
+            }
+
+        }catch (SQLException e){
+            throw new DataAccessException("Get username From Token SQL nicht erfolgreich", e);
+        }
+
+        return result;
+    }
 
     /**
      * checks if user exists, selects user from users table and queries for the username
@@ -136,13 +182,16 @@ public class UserRepositoryImpl implements UserRepository {
     public User userExists(String username) {
         User user = null;
         try (PreparedStatement select = this.unitOfWork.prepareStatement("""
-                SELECT * FROM public.users
+                SELECT username, password FROM public.users
                         where username = ?
                 """)){
             select.setString(1, username);
             ResultSet rs = select.executeQuery();
             while(rs.next()) {
-                user = new User(rs.getString(1), rs.getString(2));
+                user = User.builder()
+                        .username(rs.getString(1))
+                        .password(rs.getString(2))
+                        .build();
             }
         } catch(SQLException e) {
             throw new DataAccessException("User exists SQL nicht erfolgreich", e);

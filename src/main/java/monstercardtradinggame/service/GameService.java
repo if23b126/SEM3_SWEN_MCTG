@@ -14,7 +14,6 @@ import monstercardtradinggame.persistence.repository.UserRepository;
 import monstercardtradinggame.persistence.repository.UserRepositoryImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-import java.util.Base64;
 import java.util.Collection;
 
 public class GameService extends AbstractService {
@@ -27,20 +26,55 @@ public class GameService extends AbstractService {
         this.userRepository = new UserRepositoryImpl(new UnitOfWork());
     }
 
+    /**
+     * /packages
+     * @param request Request sent from server
+     * @return new Response()
+     */
     public Response createPackage(Request request) {
-        if(userRepository.checkIfUserIsLoggedIn(request.getHeaderMap().getHeader("Authorization").substring(7))) {
+        String token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        Response response;
+        if(userRepository.checkIfUserIsLoggedIn(token)) {
             Collection<Card> cards;
             try {
-                cards = this.getObjectMapper().readValue(request.getBody(), new TypeReference<Collection<Card>>() {}); // mapper from body to User
+                cards = this.getObjectMapper().readValue(request.getBody(), new TypeReference<Collection<Card>>() {});
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
+
+            if(userRepository.checkIfUserIsAdmin(token)) {
+                if(gameRepository.createPackage(cards, userRepository.getUserIDFromToken(token))) {
+                    response = new Response(HttpStatus.CREATED);
+                } else {
+                    response = new Response(HttpStatus.CONFLICT);
+                }
+            } else {
+                response = new Response(HttpStatus.FORBIDDEN);
+            }
+        } else {
+            response = new Response(HttpStatus.UNAUTHORIZED);
         }
-        return new Response(HttpStatus.OK);
+        return response;
     }
 
     public Response buyPackage(Request request) {
-        return new Response(HttpStatus.OK);
+        String token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        Response response;
+        if(userRepository.checkIfUserIsLoggedIn(token)) {
+            switch(gameRepository.buyPackage(userRepository.getUserIDFromToken(token))) {
+                case -1:
+                    response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "Not enough money");
+                    break;
+                case 1:
+                    response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "No packages available");
+                default:
+                    response = new Response(HttpStatus.CREATED);
+            }
+        } else {
+            response = new Response(HttpStatus.UNAUTHORIZED);
+        }
+
+        return response;
     }
 
     public Response getCards(Request request) {

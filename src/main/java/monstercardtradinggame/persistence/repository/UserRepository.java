@@ -7,4 +7,6 @@ public interface UserRepository {
     Boolean logout(String token);
     Boolean register(String username, String password);
     Boolean checkIfUserIsLoggedIn(String token);
+    int getUserIDFromToken(String token);
+    Boolean checkIfUserIsAdmin(String token);
 }
