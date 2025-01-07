@@ -12,7 +12,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.Random;
 
 public class GameRepositoryImpl implements GameRepository {
     private UnitOfWork unitOfWork;
@@ -89,8 +92,12 @@ public class GameRepositoryImpl implements GameRepository {
     public int buyPackage(int userID) {
         int response = -1;
 
-        try(PreparedStatement select_coins = this.unitOfWork.prepareStatement("""
-                SELECT coins from public.users
+        try(PreparedStatement select_packages = this.unitOfWork.prepareStatement("""
+                SELECT id FROM public.packages
+                WHERE is_bought=false
+            """);
+            PreparedStatement select_coins = this.unitOfWork.prepareStatement("""
+                SELECT coins FROM public.users
                 WHERE id=?
             """);
             PreparedStatement update_users = this.unitOfWork.prepareStatement("""
@@ -102,10 +109,87 @@ public class GameRepositoryImpl implements GameRepository {
                 UPDATE public.packages
                 SET is_bought=true
                 WHERE id=?;
+            """);
+            PreparedStatement select_cards = this.unitOfWork.prepareStatement("""
+                SELECT card_id
+                FROM public.cards_in_packages
+                WHERE package_id=?
+            """);
+            PreparedStatement update_cards = this.unitOfWork.prepareStatement("""
+                UPDATE public.cards
+                SET owned_by=?
+                WHERE id=?
             """)) {
 
+            select_coins.setInt(1, userID);
+            ResultSet coins_result = select_coins.executeQuery();
+            int coins = -1;
+            while (coins_result.next()) {
+                coins = coins_result.getInt(1);
+            }
+
+            if(coins < 5) {
+                response = -1;
+            } else if(!checkIfPackageAvailable()){
+                    response = 1;
+            } else if(checkIfPackageAvailable()) {
+                ResultSet package_result = select_packages.executeQuery();
+                List<Integer> package_ids = new ArrayList<>();
+                while (package_result.next()) {
+                    package_ids.add(package_result.getInt(1));
+                }
+                Random rand = new Random();
+                int package_id = package_ids.get(rand.ints(0, package_ids.size()).findFirst().getAsInt());
+
+                update_users.setInt(1, coins - 5);
+                update_users.setInt(2, userID);
+                update_users.executeUpdate();
+
+                update_package.setInt(1, package_id);
+                update_package.executeUpdate();
+
+                Collection<String> cards = new ArrayList<>();
+                select_cards.setInt(1, package_id);
+                ResultSet result_cards = select_cards.executeQuery();
+                while (result_cards.next()) {
+                    cards.add(result_cards.getString(1));
+                }
+
+                update_cards.setInt(1, userID);
+                for (String card_id : cards) {
+                    update_cards.setString(2, card_id);
+                    update_cards.executeUpdate();
+                }
+
+                this.unitOfWork.commitTransaction();
+
+                response = 0;
+            }
+
         } catch (SQLException e) {
+            this.unitOfWork.rollbackTransaction();
             throw new DataAccessException("buyPackage SQL nicht erfolgreich", e);
+        }
+
+        return response;
+    }
+
+    private Boolean checkIfPackageAvailable(){
+        Boolean response = false;
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT count(*) FROM public.packages
+                WHERE is_bought=false
+            """)) {
+            ResultSet rs = select.executeQuery();
+            int result = -1;
+            while(rs.next()) {
+                result = rs.getInt(1);
+            }
+
+            response = result != 0;
+
+        } catch (SQLException e){
+            throw new DataAccessException("checkIfPackageAvailable SQL nicht erfolgreich", e);
         }
 
         return response;
