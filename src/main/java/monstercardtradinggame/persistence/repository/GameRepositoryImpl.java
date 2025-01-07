@@ -174,6 +174,55 @@ public class GameRepositoryImpl implements GameRepository {
         return response;
     }
 
+    @Override
+    public Collection<Card> getCards(int userID) {
+        Collection<Card> cards = new ArrayList<>();
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT * FROM public.cards
+                WHERE owned_by=?
+            """)) {
+            select.setInt(1, userID);
+            ResultSet result = select.executeQuery();
+            while(result.next()) {
+                cards.add(Card.builder()
+                        .id(result.getString(1))
+                        .name(result.getString(2))
+                        .damage(result.getInt(3))
+                        .type(result.getString(4))
+                        .build());
+            }
+        } catch(SQLException e) {
+            throw new DataAccessException("getCards SQL nicht erfolgreich", e);
+        }
+
+        return cards;
+    }
+
+    @Override
+    public Collection<Card> getDeck(int userID) {
+        Collection<Card> cards = new ArrayList<>();
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT c.* FROM public.cards_in_decks cid
+                LEFT JOIN public.cards c
+                ON cid.card_id=c.id AND c.owned_by=?
+            """)) {
+            select.setInt(1, userID);
+            ResultSet result = select.executeQuery();
+            while(result.next()) {
+                cards.add(Card.builder()
+                        .id(result.getString(1))
+                        .name(result.getString(2))
+                        .damage(result.getInt(3))
+                        .type(result.getString(4))
+                        .build());
+            }
+        } catch(SQLException e) {
+            throw new DataAccessException("getDeck SQL nicht erfolgreich", e);
+        }
+
+        return cards;
+    }
+
     private Boolean checkIfPackageAvailable(){
         Boolean response = false;
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""

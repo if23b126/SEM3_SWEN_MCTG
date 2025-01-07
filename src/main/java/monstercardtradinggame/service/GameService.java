@@ -78,14 +78,54 @@ public class GameService extends AbstractService {
     }
 
     public Response getCards(Request request) {
-        return new Response(HttpStatus.OK);
+        String token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        Response response;
+        if(userRepository.checkIfUserIsLoggedIn(token)) {
+            Collection<Card> cards = gameRepository.getCards(userRepository.getUserIDFromToken(token));
+            String json = null;
+            try{
+                json = this.getObjectMapper().writeValueAsString(cards);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+
+            response = new Response(HttpStatus.OK, ContentType.JSON, json);
+        } else {
+            response = new Response(HttpStatus.UNAUTHORIZED);
+        }
+
+        return response;
     }
 
     public Response getDeck(Request request, Boolean asPlainString) {
-        if (asPlainString) {
-            return new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "plain");
+        String token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        Response response;
+        if(userRepository.checkIfUserIsLoggedIn(token)) {
+            Collection<Card> cards = gameRepository.getDeck(userRepository.getUserIDFromToken(token));
+            if (asPlainString) {
+                String plain = "";
+                int counter = 1;
+
+                for(Card card : cards) {
+                    plain += "Card " + counter++ + "\n" + card.toString() + "\n";
+                }
+
+                response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, plain);
+            } else {
+                String json = null;
+                try{
+                    json = this.getObjectMapper().writeValueAsString(cards);
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+
+                response = new Response(HttpStatus.OK, ContentType.JSON, json);
+            }
+        } else {
+            response = new Response(HttpStatus.UNAUTHORIZED);
         }
-        return new Response(HttpStatus.OK, ContentType.JSON, "json");
+
+        return response;
     }
 
     public Response putDeck(Request request) {
