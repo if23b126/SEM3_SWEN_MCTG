@@ -1,17 +1,12 @@
 package monstercardtradinggame.persistence.repository;
 
-import httpserver.server.Request;
-import httpserver.server.Response;
 import monstercardtradinggame.model.Card;
-import monstercardtradinggame.model.User;
 import monstercardtradinggame.persistence.DataAccessException;
 import monstercardtradinggame.persistence.UnitOfWork;
 
-import javax.swing.plaf.nimbus.State;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -45,7 +40,7 @@ public class GameRepositoryImpl implements GameRepository {
                 VALUES(?, ?);
             """)) {
 
-            if(!checkIfCardExisted(cards)) {
+            if(!checkIfCardExist(cards)) {
 
                 insert_package.setInt(1, userID);
                 int affectedRows = insert_package.executeUpdate();
@@ -223,6 +218,67 @@ public class GameRepositoryImpl implements GameRepository {
         return cards;
     }
 
+    @Override
+    public Boolean createDeck(int userID, String[] cards) {
+        Boolean result = false;
+
+        try(PreparedStatement delete_relation = this.unitOfWork.prepareStatement("""
+                DELETE FROM public.cards_in_decks
+                WHERE deck_id=(SELECT id FROM public.decks d WHERE d.user_id=?)
+            """);
+            PreparedStatement delete_deck = this.unitOfWork.prepareStatement("""
+                DELETE FROM public.decks
+                WHERE user_id=?
+            """);
+            PreparedStatement insert_deck = this.unitOfWork.prepareStatement("""
+                INSERT INTO public.decks
+                (user_id)
+                VALUES(?)
+            """, true);
+            PreparedStatement insert_relation = this.unitOfWork.prepareStatement("""
+                INSERT INTO public.cards_in_decks
+                (deck_id, card_id)
+                VALUES(?, ?)
+            """)) {
+
+            if(checkIfDeckExist(userID)) {
+                delete_relation.setInt(1, userID);
+                delete_relation.executeUpdate();
+
+                delete_deck.setInt(1, userID);
+                delete_deck.executeUpdate();
+            }
+
+            insert_deck.setInt(1, userID);
+            insert_deck.executeUpdate();
+
+            int deck_id = -1;
+
+            try (ResultSet generatedKeys = insert_deck.getGeneratedKeys()) {
+                generatedKeys.next();
+                deck_id = generatedKeys.getInt(1);
+            } catch (SQLException e) {
+                this.unitOfWork.rollbackTransaction();
+                throw new DataAccessException("aquiring deck_id failed");
+            }
+
+            insert_relation.setInt(1, deck_id);
+            for(String card : cards) {
+                insert_relation.setString(2, card);
+                insert_relation.executeUpdate();
+            }
+
+            this.unitOfWork.commitTransaction();
+            result = true;
+
+        } catch (SQLException e) {
+            this.unitOfWork.rollbackTransaction();
+            throw new DataAccessException("createDeck SQL nicht erfolgreich", e);
+        }
+
+        return result;
+    }
+
     private Boolean checkIfPackageAvailable(){
         Boolean response = false;
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""
@@ -244,7 +300,7 @@ public class GameRepositoryImpl implements GameRepository {
         return response;
     }
 
-    private Boolean checkIfCardExisted (Collection<Card> cards) {
+    private Boolean checkIfCardExist(Collection<Card> cards) {
         Boolean response = false;
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""
                 SELECT count(*) FROM public.cards
@@ -263,6 +319,26 @@ public class GameRepositoryImpl implements GameRepository {
             }
         } catch(SQLException e){
             throw new DataAccessException("select cards not successful");
+        }
+
+        return response;
+    }
+
+    private Boolean checkIfDeckExist(int userID) {
+        Boolean response = false;
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT count(*) FROM public.decks
+                WHERE user_id=?
+            """)) {
+            select.setInt(1, userID);
+            ResultSet deck_result = select.executeQuery();
+            int result = -1;
+            while (deck_result.next()) {
+                result = deck_result.getInt(1);
+            }
+            response = result != 0;
+        } catch (SQLException e) {
+            throw new DataAccessException("checkIfDeckExist SQL nicht erfolgreich", e);
         }
 
         return response;

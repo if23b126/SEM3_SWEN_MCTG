@@ -129,7 +129,30 @@ public class GameService extends AbstractService {
     }
 
     public Response putDeck(Request request) {
-        return new Response(HttpStatus.OK);
+        String token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        Response response;
+        if(userRepository.checkIfUserIsLoggedIn(token)) {
+            String[] cards;
+            cards = request.getBody().replace("[", "")
+                    .replace("]", "")
+                    .replace("\"", "")
+                    .replace("\n", "")
+                    .replace(" ", "")
+                    .split(",");
+
+            if(cards.length != 4) {
+                response = new Response(HttpStatus.CONFLICT);
+            }
+            else if(gameRepository.createDeck(userRepository.getUserIDFromToken(token), cards)) {
+                response = new Response(HttpStatus.CREATED);
+            } else {
+                response = new Response(HttpStatus.CONFLICT);
+            }
+        } else {
+            response = new Response(HttpStatus.UNAUTHORIZED);
+        }
+
+        return response;
     }
 
     public Response getStats(Request request) {

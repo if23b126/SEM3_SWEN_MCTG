@@ -11,4 +11,5 @@ public interface GameRepository {
     int buyPackage(int userID);
     Collection<Card> getCards(int userID);
     Collection<Card> getDeck(int userID);
+    Boolean createDeck(int userID, String[] cards);
 }
