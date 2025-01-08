@@ -31,6 +31,7 @@ public class Main {
         router.addService("/deck", new GameController());
         router.addService("/stats", new GameController());
         router.addService("/scoreboards", new GameController());
+        router.addService("/battles", new GameController());
 
         return router;
     }

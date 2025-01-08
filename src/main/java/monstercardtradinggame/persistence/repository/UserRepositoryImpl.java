@@ -139,8 +139,10 @@ public class UserRepositoryImpl implements UserRepository {
 
             select.setString(1, token);
             ResultSet rs = select.executeQuery();
-            while (rs.next()) {
-                result = rs.getInt(1);
+            while(rs.next()) {
+                if(rs.getInt(1) != 0) {
+                    result = rs.getInt(1);
+                }
             }
 
         }catch (SQLException e){
@@ -163,9 +165,11 @@ public class UserRepositoryImpl implements UserRepository {
 
             select.setString(1, token);
             ResultSet rs = select.executeQuery();
-            rs.next();
-            result = rs.getBoolean(1);
-
+            while(rs.next()) {
+                if(rs.getBoolean(1)) {
+                    result = rs.getBoolean(1);
+                }
+            }
 
         }catch (SQLException e){
             throw new DataAccessException("Get username From Token SQL nicht erfolgreich", e);

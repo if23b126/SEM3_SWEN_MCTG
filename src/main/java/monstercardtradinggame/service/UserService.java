@@ -97,7 +97,10 @@ public class UserService extends AbstractService {
 
 
     public Response getUserInfo(Request request) {
-        String token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        String token = null;
+        if(request.getHeaderMap().getHeader("Authorization") != null) {
+            token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        }
         Response response;
         if(userRepository.checkIfUserIsLoggedIn(token)) {
             String[] username = request.getPathname().split("/");
@@ -124,7 +127,10 @@ public class UserService extends AbstractService {
     }
 
     public Response setUserInfo(Request request) {
-        String token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        String token = null;
+        if(request.getHeaderMap().getHeader("Authorization") != null) {
+            token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        }
         Response response;
         if(userRepository.checkIfUserIsLoggedIn(token)) {
             String[] username = request.getPathname().split("/");

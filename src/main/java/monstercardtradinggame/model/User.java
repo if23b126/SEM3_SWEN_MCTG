@@ -27,7 +27,7 @@ public class User {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class UserInfo{
-        @JsonAlias({"name"})
+        @JsonAlias({"Name"})
         private String name;
         @JsonAlias({"Bio"})
         private String bio;

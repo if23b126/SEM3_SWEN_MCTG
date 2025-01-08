@@ -31,8 +31,8 @@ public class GameRepositoryImpl implements GameRepository {
             """, true);
             PreparedStatement insert_cards = this.unitOfWork.prepareStatement("""
                 INSERT INTO public.cards
-                    (id, name, damage)
-                VALUES(?, ?, ?);
+                    (id, name, damage, type)
+                VALUES(?, ?, ?, ?);
             """);
             PreparedStatement insert_relations = this.unitOfWork.prepareStatement("""
                 INSERT INTO public.cards_in_packages
@@ -63,6 +63,13 @@ public class GameRepositoryImpl implements GameRepository {
                     insert_cards.setString(1, card.getId());
                     insert_cards.setString(2, card.getName());
                     insert_cards.setInt(3, card.getDamage());
+                    if(card.getName().startsWith("Water")){
+                        insert_cards.setString(4, "water");
+                    } else if (card.getName().startsWith("Fire") || card.getName().startsWith("Dragon")){
+                        insert_cards.setString(4, "fire");
+                    } else {
+                        insert_cards.setString(4, "normal");
+                    }
 
                     insert_relations.setString(1, card.getId());
                     insert_relations.setInt(2, package_id);
@@ -77,6 +84,7 @@ public class GameRepositoryImpl implements GameRepository {
             }
 
         } catch (SQLException e){
+            this.unitOfWork.rollbackTransaction();
             throw new DataAccessException("create Package SQL nicht erfolgreich", e);
         }
 
@@ -204,12 +212,14 @@ public class GameRepositoryImpl implements GameRepository {
             select.setInt(1, userID);
             ResultSet result = select.executeQuery();
             while(result.next()) {
-                cards.add(Card.builder()
+                if(result.getInt(3) != 0) {
+                    cards.add(Card.builder()
                         .id(result.getString(1))
                         .name(result.getString(2))
                         .damage(result.getInt(3))
                         .type(result.getString(4))
                         .build());
+                }
             }
         } catch(SQLException e) {
             throw new DataAccessException("getDeck SQL nicht erfolgreich", e);
@@ -241,39 +251,87 @@ public class GameRepositoryImpl implements GameRepository {
                 VALUES(?, ?)
             """)) {
 
-            if(checkIfDeckExist(userID)) {
-                delete_relation.setInt(1, userID);
-                delete_relation.executeUpdate();
+            if(checkCardOwnership(userID, cards)) {
 
-                delete_deck.setInt(1, userID);
-                delete_deck.executeUpdate();
+                if (checkIfDeckExist(userID)) {
+                    delete_relation.setInt(1, userID);
+                    delete_relation.executeUpdate();
+
+                    delete_deck.setInt(1, userID);
+                    delete_deck.executeUpdate();
+                }
+
+                insert_deck.setInt(1, userID);
+                insert_deck.executeUpdate();
+
+                int deck_id = -1;
+
+                try (ResultSet generatedKeys = insert_deck.getGeneratedKeys()) {
+                    generatedKeys.next();
+                    deck_id = generatedKeys.getInt(1);
+                } catch (SQLException e) {
+                    this.unitOfWork.rollbackTransaction();
+                    throw new DataAccessException("aquiring deck_id failed");
+                }
+
+                insert_relation.setInt(1, deck_id);
+                for (String card : cards) {
+                    insert_relation.setString(2, card);
+                    insert_relation.executeUpdate();
+                }
+
+                this.unitOfWork.commitTransaction();
+                result = true;
             }
-
-            insert_deck.setInt(1, userID);
-            insert_deck.executeUpdate();
-
-            int deck_id = -1;
-
-            try (ResultSet generatedKeys = insert_deck.getGeneratedKeys()) {
-                generatedKeys.next();
-                deck_id = generatedKeys.getInt(1);
-            } catch (SQLException e) {
-                this.unitOfWork.rollbackTransaction();
-                throw new DataAccessException("aquiring deck_id failed");
-            }
-
-            insert_relation.setInt(1, deck_id);
-            for(String card : cards) {
-                insert_relation.setString(2, card);
-                insert_relation.executeUpdate();
-            }
-
-            this.unitOfWork.commitTransaction();
-            result = true;
 
         } catch (SQLException e) {
             this.unitOfWork.rollbackTransaction();
             throw new DataAccessException("createDeck SQL nicht erfolgreich", e);
+        }
+
+        return result;
+    }
+
+    @Override
+    public int battle(int userID) {
+        int result = -1;
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT user_id FROM public.ready_to_battle
+            """);
+            PreparedStatement insert = this.unitOfWork.prepareStatement("""
+                INSERT INTO public.ready_to_battle
+                (user_id)
+                VALUES(?);
+            """);
+            PreparedStatement delete = this.unitOfWork.prepareStatement("""
+                DELETE FROM public.ready_to_battle
+                WHERE user_id=?;
+            """)) {
+            List<Integer> playersReadyForBattle = new ArrayList<>();
+            ResultSet rs = select.executeQuery();
+
+            while(rs.next()) {
+                playersReadyForBattle.add(rs.getInt(1));
+            }
+
+            if(playersReadyForBattle.isEmpty()) {
+                insert.setInt(1, userID);
+                insert.executeUpdate();
+            } else {
+                Random rand = new Random();
+                int opponentID = playersReadyForBattle.get(rand.ints(0, playersReadyForBattle.size()).findFirst().getAsInt());
+                result = executeBattle(userID, opponentID);
+
+                delete.setInt(1, opponentID);
+                delete.executeUpdate();
+                delete.setInt(1, userID);
+                delete.executeUpdate();
+            }
+
+            this.unitOfWork.commitTransaction();
+        } catch(SQLException e) {
+            this.unitOfWork.rollbackTransaction();
+            throw new DataAccessException("battle SQL nicht erfolgreich", e);
         }
 
         return result;
@@ -302,19 +360,27 @@ public class GameRepositoryImpl implements GameRepository {
 
     private Boolean checkIfCardExist(Collection<Card> cards) {
         Boolean response = false;
-        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+        try(PreparedStatement select_count = this.unitOfWork.prepareStatement("""
                 SELECT count(*) FROM public.cards
-                WHERE id=?
-            """)) {
-            for (Card card : cards) {
-                int result = -1;
-                select.setString(1, card.getId());
-                ResultSet rs = select.executeQuery();
-                while (rs.next()) {
-                    result = rs.getInt(1);
-                }
-                if (result != 0) {
-                    response = true;
+            """);
+            PreparedStatement select = this.unitOfWork.prepareStatement("""
+                    SELECT count(*) FROM public.cards
+                    WHERE id=?
+                """)) {
+            ResultSet count_result = select_count.executeQuery();
+            count_result.next();
+            int count = count_result.getInt(1);
+            if(count != 0) {
+                for (Card card : cards) {
+                    int result = -1;
+                    select.setString(1, card.getId());
+                    ResultSet rs = select.executeQuery();
+                    while (rs.next()) {
+                        result = rs.getInt(1);
+                    }
+                    if (result != 0) {
+                        response = true;
+                    }
                 }
             }
         } catch(SQLException e){
@@ -322,6 +388,28 @@ public class GameRepositoryImpl implements GameRepository {
         }
 
         return response;
+    }
+
+    private Boolean checkCardOwnership(int userID, String[] cards) {
+        Boolean result = true;
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT owned_by FROM public.cards
+                WHERE id=?
+            """)) {
+            for (String card : cards) {
+                select.setString(1, card);
+                ResultSet rs = select.executeQuery();
+                rs.next();
+                int cardOwner = rs.getInt(1);
+                if(cardOwner != userID) {
+                    result = false;
+                }
+            }
+        } catch(SQLException e) {
+            throw new DataAccessException("checkCardOwnership SQL nicht erfolgreich", e);
+        }
+
+        return result;
     }
 
     private Boolean checkIfDeckExist(int userID) {
@@ -338,9 +426,92 @@ public class GameRepositoryImpl implements GameRepository {
             }
             response = result != 0;
         } catch (SQLException e) {
+            this.unitOfWork.rollbackTransaction();
             throw new DataAccessException("checkIfDeckExist SQL nicht erfolgreich", e);
         }
 
         return response;
+    }
+
+    private int executeBattle(int initiator, int opponent) {
+        int winner = 0;
+
+        List<Card> initiatorCards = (List<Card>)getDeck(initiator);
+        List<Card> opponentCards = (List<Card>)getDeck(opponent);
+
+        for(int i = 0; i < 100; i++) {
+            Random rand = new Random();
+            Card initiatorCard = initiatorCards.get(rand.nextInt(initiatorCards.size()));
+            Card opponentCard = opponentCards.get(rand.nextInt(opponentCards.size()));
+
+            if(initiatorCard.getType().equals(opponentCard.getType())) {
+                if(initiatorCard.getDamage() < opponentCard.getDamage()) {
+                    initiatorCards.remove(initiatorCard);
+                    opponentCards.add(initiatorCard);
+                } else if(initiatorCard.getDamage() > opponentCard.getDamage()) {
+                    opponentCards.remove(opponentCard);
+                    initiatorCards.add(opponentCard);
+                }
+            } else if(initiatorCard.getType().equals("water") && opponentCard.getType().equals("fire")) {
+                if(initiatorCard.getDamage()*2 < opponentCard.getDamage()) {
+                    initiatorCards.remove(initiatorCard);
+                    opponentCards.add(initiatorCard);
+                } else if(initiatorCard.getDamage()*2 > opponentCard.getDamage()) {
+                    opponentCards.remove(opponentCard);
+                    initiatorCards.add(opponentCard);
+                }
+            } else if(initiatorCard.getType().equals("fire") && opponentCard.getType().equals("water")) {
+                if(initiatorCard.getDamage()/2 < opponentCard.getDamage()) {
+                    initiatorCards.remove(initiatorCard);
+                    opponentCards.add(initiatorCard);
+                } else if(initiatorCard.getDamage()/2 > opponentCard.getDamage()) {
+                    opponentCards.remove(opponentCard);
+                    initiatorCards.add(opponentCard);
+                }
+            }else if(initiatorCard.getType().equals("fire") && opponentCard.getType().equals("normal")) {
+                if(initiatorCard.getDamage()*2 < opponentCard.getDamage()) {
+                    initiatorCards.remove(initiatorCard);
+                    opponentCards.add(initiatorCard);
+                } else if(initiatorCard.getDamage()*2 > opponentCard.getDamage()) {
+                    opponentCards.remove(opponentCard);
+                    initiatorCards.add(opponentCard);
+                }
+            } else if(initiatorCard.getType().equals("normal") && opponentCard.getType().equals("fire")) {
+                if(initiatorCard.getDamage()/2 < opponentCard.getDamage()) {
+                    initiatorCards.remove(initiatorCard);
+                    opponentCards.add(initiatorCard);
+                } else if(initiatorCard.getDamage()/2 > opponentCard.getDamage()) {
+                    opponentCards.remove(opponentCard);
+                    initiatorCards.add(opponentCard);
+                }
+            } else if(initiatorCard.getType().equals("normal") && opponentCard.getType().equals("water")) {
+                if(initiatorCard.getDamage()*2 < opponentCard.getDamage()) {
+                    initiatorCards.remove(initiatorCard);
+                    opponentCards.add(initiatorCard);
+                } else if(initiatorCard.getDamage()*2 > opponentCard.getDamage()) {
+                    opponentCards.remove(opponentCard);
+                    initiatorCards.add(opponentCard);
+                }
+            } else if(initiatorCard.getType().equals("water") && opponentCard.getType().equals("normal")) {
+                if(initiatorCard.getDamage()/2 < opponentCard.getDamage()) {
+                    initiatorCards.remove(initiatorCard);
+                    opponentCards.add(initiatorCard);
+                } else if(initiatorCard.getDamage()/2 > opponentCard.getDamage()) {
+                    opponentCards.remove(opponentCard);
+                    initiatorCards.add(opponentCard);
+                }
+            }
+
+            if(initiatorCards.isEmpty()){
+                winner = 1;
+                break;
+            }
+            if(opponentCards.isEmpty()){
+                winner = 2;
+                break;
+            }
+        }
+
+        return winner;
     }
 }

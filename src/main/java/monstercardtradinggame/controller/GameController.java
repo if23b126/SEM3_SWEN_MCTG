@@ -41,6 +41,8 @@ public class GameController implements RestController {
             return this.gameService.getStats(request);
         } else if(request.getMethod() == Method.GET && request.getPathname().equals("/scoreboards")) {
             return this.gameService.getScoreboards(request);
+        } else if(request.getMethod() == Method.POST && request.getPathname().equals("/battles")) {
+            return this.gameService.battle(request);
         } else {
             return new Response(HttpStatus.BAD_REQUEST,
                     ContentType.JSON,

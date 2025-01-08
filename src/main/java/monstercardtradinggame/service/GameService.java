@@ -32,7 +32,10 @@ public class GameService extends AbstractService {
      * @return new Response()
      */
     public Response createPackage(Request request) {
-        String token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        String token = null;
+        if(request.getHeaderMap().getHeader("Authorization") != null) {
+            token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        }
         Response response;
         if(userRepository.checkIfUserIsLoggedIn(token)) {
             Collection<Card> cards;
@@ -58,7 +61,10 @@ public class GameService extends AbstractService {
     }
 
     public Response buyPackage(Request request) {
-        String token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        String token = null;
+        if(request.getHeaderMap().getHeader("Authorization") != null) {
+            token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        }
         Response response;
         if(userRepository.checkIfUserIsLoggedIn(token)) {
             switch(gameRepository.buyPackage(userRepository.getUserIDFromToken(token))) {
@@ -67,6 +73,7 @@ public class GameService extends AbstractService {
                     break;
                 case 1:
                     response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "No packages available");
+                    break;
                 default:
                     response = new Response(HttpStatus.CREATED);
             }
@@ -78,7 +85,10 @@ public class GameService extends AbstractService {
     }
 
     public Response getCards(Request request) {
-        String token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        String token = null;
+        if(request.getHeaderMap().getHeader("Authorization") != null) {
+            token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        }
         Response response;
         if(userRepository.checkIfUserIsLoggedIn(token)) {
             Collection<Card> cards = gameRepository.getCards(userRepository.getUserIDFromToken(token));
@@ -98,7 +108,10 @@ public class GameService extends AbstractService {
     }
 
     public Response getDeck(Request request, Boolean asPlainString) {
-        String token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        String token = null;
+        if(request.getHeaderMap().getHeader("Authorization") != null) {
+            token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        }
         Response response;
         if(userRepository.checkIfUserIsLoggedIn(token)) {
             Collection<Card> cards = gameRepository.getDeck(userRepository.getUserIDFromToken(token));
@@ -129,7 +142,10 @@ public class GameService extends AbstractService {
     }
 
     public Response putDeck(Request request) {
-        String token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        String token = null;
+        if(request.getHeaderMap().getHeader("Authorization") != null) {
+            token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        }
         Response response;
         if(userRepository.checkIfUserIsLoggedIn(token)) {
             String[] cards;
@@ -161,5 +177,34 @@ public class GameService extends AbstractService {
 
     public Response getScoreboards(Request request) {
         return new Response(HttpStatus.OK);
+    }
+
+    public Response battle(Request request) {
+        String token = null;
+        if(request.getHeaderMap().getHeader("Authorization") != null) {
+            token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        }
+        Response response;
+        if(userRepository.checkIfUserIsLoggedIn(token)) {
+            int userID = userRepository.getUserIDFromToken(token);
+            int winner = gameRepository.battle(userID);
+            switch(winner) {
+                case 0:
+                    response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "Draw!");
+                    break;
+                case 1:
+                    response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "You Won!");
+                    break;
+                case 2:
+                    response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "You Lost!");
+                    break;
+                default:
+                    response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "Waiting for Opponent!");
+            }
+        } else {
+            response = new Response(HttpStatus.UNAUTHORIZED);
+        }
+
+        return response;
     }
 }
