@@ -97,10 +97,58 @@ public class UserService extends AbstractService {
 
 
     public Response getUserInfo(Request request) {
-        return new Response(HttpStatus.OK);
+        String token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        Response response;
+        if(userRepository.checkIfUserIsLoggedIn(token)) {
+            String[] username = request.getPathname().split("/");
+            User.UserInfo user = null;
+            String json = null;
+            if(username[username.length - 1].equals(userRepository.getUsernameFromToken(token)) || userRepository.checkIfUserIsAdmin(token)) {
+                user = userRepository.getUserData(userRepository.getIDFromUsername(username[username.length - 1]));
+
+                try{
+                    json = this.getObjectMapper().writeValueAsString(user);
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+                response = new Response(HttpStatus.OK, ContentType.JSON, json);
+            } else {
+                response = new Response(HttpStatus.UNAUTHORIZED);
+            }
+
+        } else {
+            response = new Response(HttpStatus.UNAUTHORIZED);
+        }
+
+        return response;
     }
 
     public Response setUserInfo(Request request) {
-        return new Response(HttpStatus.OK);
+        String token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        Response response;
+        if(userRepository.checkIfUserIsLoggedIn(token)) {
+            String[] username = request.getPathname().split("/");
+            if(username[username.length - 1].equals(userRepository.getUsernameFromToken(token))) {
+                User.UserInfo userInfo = null;
+                try {
+                    userInfo = this.getObjectMapper().readValue(request.getBody(), User.UserInfo.class);
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+
+                if(userRepository.updateUserData(userInfo, userRepository.getUserIDFromToken(token))) {
+                    response = new Response(HttpStatus.OK);
+                } else {
+                    response = new Response(HttpStatus.CONFLICT);
+                }
+            } else {
+                response = new Response(HttpStatus.UNAUTHORIZED);
+            }
+
+        } else {
+            response = new Response(HttpStatus.UNAUTHORIZED);
+        }
+
+        return response;
     }
 }

@@ -163,12 +163,97 @@ public class UserRepositoryImpl implements UserRepository {
 
             select.setString(1, token);
             ResultSet rs = select.executeQuery();
-            while (rs.next()) {
-                result = rs.getBoolean(1);
-            }
+            rs.next();
+            result = rs.getBoolean(1);
+
 
         }catch (SQLException e){
             throw new DataAccessException("Get username From Token SQL nicht erfolgreich", e);
+        }
+
+        return result;
+    }
+
+    @Override
+    public String getUsernameFromToken(String token) {
+        String result = null;
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT username
+                FROM public.currently_logged_in
+                WHERE token=?
+            """)) {
+            select.setString(1, token);
+            ResultSet rs = select.executeQuery();
+            while (rs.next()) {
+                result = rs.getString(1);
+            }
+        } catch (SQLException e){
+            throw new DataAccessException("Get username From Token SQL nicht erfolgreich", e);
+        }
+        return result;
+    }
+
+    @Override
+    public int getIDFromUsername(String username) {
+        int result = -1;
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT id FROM public.users
+                WHERE username=?
+            """)) {
+            select.setString(1, username);
+            ResultSet rs = select.executeQuery();
+            rs.next();
+            result = rs.getInt(1);
+        } catch(SQLException e){
+            throw new DataAccessException("Get username From Token SQL nicht erfolgreich", e);
+        }
+
+        return result;
+    }
+
+    @Override
+    public User.UserInfo getUserData(int userID) {
+        User.UserInfo result = null;
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT name, bio, image
+                FROM public.users
+                WHERE id=?
+            """)) {
+            select.setInt(1, userID);
+            ResultSet rs = select.executeQuery();
+            while (rs.next()) {
+                result = User.UserInfo.builder()
+                        .name(rs.getString(1))
+                        .bio(rs.getString(2))
+                        .image(rs.getString(3))
+                        .build();
+            }
+        } catch(SQLException e){
+            throw new DataAccessException("Get userdata From User SQL nicht erfolgreich", e);
+        }
+        return result;
+    }
+
+    @Override
+    public Boolean updateUserData(User.UserInfo user, int userID) {
+        Boolean result = false;
+        try(PreparedStatement update = this.unitOfWork.prepareStatement("""
+                UPDATE public.users
+                SET name=?, bio=?, image=?
+                WHERE id=?
+            """)) {
+            update.setString(1, user.getName());
+            update.setString(2, user.getBio());
+            update.setString(3, user.getImage());
+            update.setInt(4, userID);
+
+            update.executeUpdate();
+            result = true;
+
+            this.unitOfWork.commitTransaction();
+        } catch(SQLException e){
+            this.unitOfWork.rollbackTransaction();
+            throw new DataAccessException("Update UserData From User SQL nicht erfolgreich", e);
         }
 
         return result;

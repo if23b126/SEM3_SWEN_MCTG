@@ -29,9 +29,9 @@ public class UserController implements RestController {
             return this.userService.logoutUser(request);
         } else if (request.getMethod() == Method.POST && request.getPathname().equals("/users")) {
             return this.userService.registerUser(request);
-        } else if (request.getMethod() == Method.GET && request.getPathname().equals("/users")) {
+        } else if (request.getMethod() == Method.GET && request.getPathname().startsWith("/users")) {
             return this.userService.getUserInfo(request);
-        } else if (request.getMethod() == Method.PUT && request.getPathname().equals("/users")) {
+        } else if (request.getMethod() == Method.PUT && request.getPathname().startsWith("/users")) {
             return this.userService.setUserInfo(request);
         } else {
             return new Response(HttpStatus.BAD_REQUEST,
