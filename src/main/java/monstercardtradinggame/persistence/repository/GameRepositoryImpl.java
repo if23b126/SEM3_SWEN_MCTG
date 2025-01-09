@@ -14,10 +14,12 @@ import java.util.Random;
 
 public class GameRepositoryImpl implements GameRepository {
     private UnitOfWork unitOfWork;
+    private UserRepository userRepository;
 
 
     public GameRepositoryImpl(UnitOfWork unitOfWork) {
         this.unitOfWork = unitOfWork;
+        userRepository = new UserRepositoryImpl(unitOfWork);
     }
 
     @Override
@@ -293,8 +295,8 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     @Override
-    public int battle(int userID) {
-        int result = -1;
+    public List<String> battle(int userID) {
+        List<String> result = new ArrayList<>();
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""
                 SELECT user_id FROM public.ready_to_battle
             """);
@@ -433,85 +435,101 @@ public class GameRepositoryImpl implements GameRepository {
         return response;
     }
 
-    private int executeBattle(int initiator, int opponent) {
-        int winner = 0;
+    private List<String> executeBattle(int initiator, int opponent) {
+        List<String> gameLog = new ArrayList<>();
 
         List<Card> initiatorCards = (List<Card>)getDeck(initiator);
         List<Card> opponentCards = (List<Card>)getDeck(opponent);
+        Boolean initiatorRedemption = false;
+        Boolean opponentRedemption = false;
 
         for(int i = 0; i < 100; i++) {
             Random rand = new Random();
-            Card initiatorCard = initiatorCards.get(rand.nextInt(initiatorCards.size()));
-            Card opponentCard = opponentCards.get(rand.nextInt(opponentCards.size()));
+            int initiatorIndex = rand.nextInt(initiatorCards.size());
+            int opponentIndex = rand.nextInt(opponentCards.size());
+            Card initiatorCard = initiatorCards.get(initiatorIndex);
+            Card opponentCard = opponentCards.get(opponentIndex);
 
-            if(initiatorCard.getType().equals(opponentCard.getType())) {
-                if(initiatorCard.getDamage() < opponentCard.getDamage()) {
-                    initiatorCards.remove(initiatorCard);
-                    opponentCards.add(initiatorCard);
-                } else if(initiatorCard.getDamage() > opponentCard.getDamage()) {
-                    opponentCards.remove(opponentCard);
-                    initiatorCards.add(opponentCard);
-                }
-            } else if(initiatorCard.getType().equals("water") && opponentCard.getType().equals("fire")) {
-                if(initiatorCard.getDamage()*2 < opponentCard.getDamage()) {
-                    initiatorCards.remove(initiatorCard);
-                    opponentCards.add(initiatorCard);
-                } else if(initiatorCard.getDamage()*2 > opponentCard.getDamage()) {
-                    opponentCards.remove(opponentCard);
-                    initiatorCards.add(opponentCard);
-                }
-            } else if(initiatorCard.getType().equals("fire") && opponentCard.getType().equals("water")) {
-                if(initiatorCard.getDamage()/2 < opponentCard.getDamage()) {
-                    initiatorCards.remove(initiatorCard);
-                    opponentCards.add(initiatorCard);
-                } else if(initiatorCard.getDamage()/2 > opponentCard.getDamage()) {
-                    opponentCards.remove(opponentCard);
-                    initiatorCards.add(opponentCard);
-                }
-            }else if(initiatorCard.getType().equals("fire") && opponentCard.getType().equals("normal")) {
-                if(initiatorCard.getDamage()*2 < opponentCard.getDamage()) {
-                    initiatorCards.remove(initiatorCard);
-                    opponentCards.add(initiatorCard);
-                } else if(initiatorCard.getDamage()*2 > opponentCard.getDamage()) {
-                    opponentCards.remove(opponentCard);
-                    initiatorCards.add(opponentCard);
-                }
-            } else if(initiatorCard.getType().equals("normal") && opponentCard.getType().equals("fire")) {
-                if(initiatorCard.getDamage()/2 < opponentCard.getDamage()) {
-                    initiatorCards.remove(initiatorCard);
-                    opponentCards.add(initiatorCard);
-                } else if(initiatorCard.getDamage()/2 > opponentCard.getDamage()) {
-                    opponentCards.remove(opponentCard);
-                    initiatorCards.add(opponentCard);
-                }
-            } else if(initiatorCard.getType().equals("normal") && opponentCard.getType().equals("water")) {
-                if(initiatorCard.getDamage()*2 < opponentCard.getDamage()) {
-                    initiatorCards.remove(initiatorCard);
-                    opponentCards.add(initiatorCard);
-                } else if(initiatorCard.getDamage()*2 > opponentCard.getDamage()) {
-                    opponentCards.remove(opponentCard);
-                    initiatorCards.add(opponentCard);
-                }
-            } else if(initiatorCard.getType().equals("water") && opponentCard.getType().equals("normal")) {
-                if(initiatorCard.getDamage()/2 < opponentCard.getDamage()) {
-                    initiatorCards.remove(initiatorCard);
-                    opponentCards.add(initiatorCard);
-                } else if(initiatorCard.getDamage()/2 > opponentCard.getDamage()) {
-                    opponentCards.remove(opponentCard);
-                    initiatorCards.add(opponentCard);
-                }
+            if(initiatorCards.size() == 1 && !initiatorRedemption) {
+                gameLog.add("Player " + userRepository.getUsernameFromID(initiator) + " used his Redemption-card and won round " + (i+1) + ".");
+                initiatorRedemption = true;
+            } else if(opponentCards.size() == 1 && !opponentRedemption){
+                gameLog.add("Player " + userRepository.getUsernameFromID(opponent) + " used his Redemption-card and won round " + (i+1) + ".");
+                opponentRedemption = true;
+            } else if(calculateDamage(initiatorCard, opponentCard) < calculateDamage(opponentCard, initiatorCard)) {
+                initiatorCards.remove(initiatorCard);
+                opponentCards.add(initiatorCard);
+                gameLog.add("Player " + userRepository.getUsernameFromID(opponent) + " won round " + (i+1) + " with " + opponentCard.getName() + " (Damage: " + calculateDamage(opponentCard, initiatorCard) + ") against " + initiatorCard.getName() + " (Damage: " + calculateDamage(initiatorCard, opponentCard) + ").");
+            } else if(calculateDamage(initiatorCard, opponentCard) > calculateDamage(opponentCard, initiatorCard)) {
+                opponentCards.remove(opponentCard);
+                initiatorCards.add(opponentCard);
+                gameLog.add("Player " + userRepository.getUsernameFromID(initiator) + " won round " + (i+1) + " with " + initiatorCard.getName() + " (Damage: " + calculateDamage(initiatorCard, opponentCard) + ") against " + opponentCard.getName() + "(Damage: " + calculateDamage(opponentCard, initiatorCard) + ").");
+            } else {
+                gameLog.add("Round " + i + " has been a tie.");
             }
 
-            if(initiatorCards.isEmpty()){
-                winner = 1;
-                break;
-            }
-            if(opponentCards.isEmpty()){
-                winner = 2;
+            if(initiatorCards.isEmpty() || opponentCards.isEmpty()) {
                 break;
             }
         }
+        if(opponentCards.isEmpty()){
+            gameLog.addFirst("You Won!");
+            userRepository.updateStats(initiator, 1);
+            userRepository.updateStats(opponent, -1);
+        } else if(initiatorCards.isEmpty()){
+            gameLog.addFirst("You Lost!");
+            userRepository.updateStats(initiator, -1);
+            userRepository.updateStats(opponent, 1);
+        } else {
+            gameLog.addFirst("It's a tie");
+            userRepository.updateStats(initiator, 0);
+            userRepository.updateStats(opponent, 0);
+        }
+        return gameLog;
+    }
 
-        return winner;
+    private int calculateDamage(Card initiatorCard, Card opponentCard) {
+        int result = -1;
+        if(initiatorCard.getName().toLowerCase().contains("spell") || opponentCard.getName().toLowerCase().contains("spell")) {
+            if (initiatorCard.getName().equalsIgnoreCase("waterspell") && opponentCard.getName().equalsIgnoreCase("knight")) {
+                result = Integer.MAX_VALUE;
+            } else if (initiatorCard.getName().equalsIgnoreCase("kngith") && opponentCard.getName().equalsIgnoreCase("waterspell")) {
+                result = Integer.MIN_VALUE;
+            } else if (initiatorCard.getName().equalsIgnoreCase("kraken") && opponentCard.getName().toLowerCase().contains("spell")) {
+                result = Integer.MAX_VALUE;
+            } else if (opponentCard.getName().toLowerCase().contains("spell") && opponentCard.getName().equalsIgnoreCase("kraken")) {
+                result = Integer.MIN_VALUE;
+            } else if (initiatorCard.getType().equalsIgnoreCase(opponentCard.getType())) {
+                result = 0;
+            } else if (initiatorCard.getType().equalsIgnoreCase("water") && opponentCard.getType().equalsIgnoreCase("fire")) {
+                result = initiatorCard.getDamage() * 2;
+            } else if (initiatorCard.getType().equalsIgnoreCase("fire") && opponentCard.getType().equalsIgnoreCase("water")) {
+                result = initiatorCard.getDamage() / 2;
+            } else if (initiatorCard.getType().equalsIgnoreCase("fire") && opponentCard.getType().equalsIgnoreCase("normal")) {
+                result = initiatorCard.getDamage() * 2;
+            } else if (initiatorCard.getType().equalsIgnoreCase("normal") && opponentCard.getType().equalsIgnoreCase("fire")) {
+                result = initiatorCard.getDamage() / 2;
+            } else if (initiatorCard.getType().equalsIgnoreCase("normal") && opponentCard.getType().equalsIgnoreCase("water")) {
+                result = initiatorCard.getDamage() * 2;
+            } else if (initiatorCard.getType().equalsIgnoreCase("water") && opponentCard.getType().equalsIgnoreCase("normal")) {
+                result = initiatorCard.getDamage() / 2;
+            }
+        } else {
+            if (initiatorCard.getName().equalsIgnoreCase("watergoblin") && opponentCard.getName().equalsIgnoreCase("dragon")) {
+                result = Integer.MAX_VALUE;
+            } else if (initiatorCard.getName().equalsIgnoreCase("dragon") && opponentCard.getName().equalsIgnoreCase("watergoblin")) {
+                result = Integer.MIN_VALUE;
+            } else if (initiatorCard.getName().equalsIgnoreCase("wizard") && opponentCard.getName().equalsIgnoreCase("ork")) {
+                result = Integer.MAX_VALUE;
+            } else if (initiatorCard.getName().equalsIgnoreCase("ork") && opponentCard.getName().equalsIgnoreCase("wizard")) {
+                result = Integer.MIN_VALUE;
+            } else if (initiatorCard.getName().equalsIgnoreCase("fireelve") && opponentCard.getName().equalsIgnoreCase("dragon")) {
+                result = Integer.MAX_VALUE;
+            } else if (initiatorCard.getName().equalsIgnoreCase("dragon") && opponentCard.getName().equalsIgnoreCase("fireelve")) {
+                result = Integer.MIN_VALUE;
+            }
+        }
+
+        return result;
     }
 }

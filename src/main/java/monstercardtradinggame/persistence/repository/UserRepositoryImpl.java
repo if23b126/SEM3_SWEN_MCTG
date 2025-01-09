@@ -263,6 +263,80 @@ public class UserRepositoryImpl implements UserRepository {
         return result;
     }
 
+    @Override
+    public String getUsernameFromID(int userID) {
+        String result = null;
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT username
+                FROM public.users
+                WHERE id=?
+            """)) {
+            select.setInt(1, userID);
+            ResultSet rs = select.executeQuery();
+            while (rs.next()) {
+                if(rs.getString(1) != null) {
+                    result = rs.getString(1);
+                }
+            }
+        } catch(SQLException e){
+            throw new DataAccessException("Get username From User SQL nicht erfolgreich", e);
+        }
+
+        return result;
+    }
+
+    /**
+     * updates the stats for the given user id
+     * @param userID user id for which the stats are updated
+     * @param stat true in case the user won, false in case the user lost
+     * @return if the SQL was successful
+     */
+    @Override
+    public Boolean updateStats(int userID, int stat) {
+        Boolean result = false;
+        try(PreparedStatement update = this.unitOfWork.prepareStatement("""
+                UPDATE public.users
+                SET wins=?, losses=?, ties=?
+                WHERE id=?;
+            """)) {
+
+            int[] rounds = getStats(userID);
+            update.setInt(1, stat == 1 ? rounds[0] + 1 : rounds[0]);
+            update.setInt(2, stat == -1 ? rounds[1] + 1 : rounds[1]);
+            update.setInt(3, stat == 0 ? rounds[2] + 1 : rounds[2]);
+            update.setInt(4, userID);
+            update.executeUpdate();
+            result = true;
+            this.unitOfWork.commitTransaction();
+
+        } catch(SQLException e){
+            throw new DataAccessException("Update Stats From User SQL nicht erfolgreich", e);
+        }
+
+        return result;
+    }
+
+
+    public int[] getStats(int userID) {
+        int[] result = new int[3];
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT wins, losses, ties FROM public.users
+                WHERE id=?
+            """)) {
+            select.setInt(1, userID);
+            ResultSet rs = select.executeQuery();
+            while (rs.next()) {
+                result[0] = rs.getInt(1);
+                result[1] = rs.getInt(2);
+                result[2] = rs.getInt(3);
+            }
+        } catch(SQLException e){
+            throw new DataAccessException("Get Stats From User SQL nicht erfolgreich", e);
+        }
+
+        return result;
+    }
+
     /**
      * checks if user exists, selects user from users table and queries for the username
      * @param username

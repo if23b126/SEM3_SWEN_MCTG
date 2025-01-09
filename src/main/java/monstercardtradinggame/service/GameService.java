@@ -15,6 +15,7 @@ import monstercardtradinggame.persistence.repository.UserRepositoryImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.util.Collection;
+import java.util.List;
 
 public class GameService extends AbstractService {
 
@@ -22,8 +23,8 @@ public class GameService extends AbstractService {
     private UserRepository userRepository;
 
     public GameService() {
-        this.gameRepository = new GameRepositoryImpl(new UnitOfWork());
-        this.userRepository = new UserRepositoryImpl(new UnitOfWork());
+        this.gameRepository = new GameRepositoryImpl(UnitOfWork.getInstance());
+        this.userRepository = new UserRepositoryImpl(UnitOfWork.getInstance());
     }
 
     /**
@@ -187,19 +188,15 @@ public class GameService extends AbstractService {
         Response response;
         if(userRepository.checkIfUserIsLoggedIn(token)) {
             int userID = userRepository.getUserIDFromToken(token);
-            int winner = gameRepository.battle(userID);
-            switch(winner) {
-                case 0:
-                    response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "Draw!");
-                    break;
-                case 1:
-                    response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "You Won!");
-                    break;
-                case 2:
-                    response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "You Lost!");
-                    break;
-                default:
-                    response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "Waiting for Opponent!");
+            List<String> gameLog = gameRepository.battle(userID);
+            if(gameLog.isEmpty()){
+                response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "Waiting for Opponent!");
+            } else {
+                String logString = "";
+                for(String line : gameLog) {
+                    logString += line + "\n";
+                }
+                response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, logString);
             }
         } else {
             response = new Response(HttpStatus.UNAUTHORIZED);

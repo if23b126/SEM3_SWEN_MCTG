@@ -15,4 +15,6 @@ public interface UserRepository {
     int getIDFromUsername(String username);
     User.UserInfo getUserData(int userID);
     Boolean updateUserData(User.UserInfo user, int userID);
+    String getUsernameFromID(int userID);
+    Boolean updateStats(int userID, int stat);
 }

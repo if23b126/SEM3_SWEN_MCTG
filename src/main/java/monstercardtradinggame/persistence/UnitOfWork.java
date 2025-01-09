@@ -8,6 +8,8 @@ import java.sql.Statement;
 public class UnitOfWork implements AutoCloseable {
 
     private Connection connection;
+    private static UnitOfWork unitOfWork;
+
     public UnitOfWork() {
         this.connection = DatabaseManager.INSTANCE.getConnection();
         try {
@@ -17,6 +19,12 @@ public class UnitOfWork implements AutoCloseable {
         }
     }
 
+    public static UnitOfWork getInstance() {
+        if (unitOfWork == null) {
+            unitOfWork = new UnitOfWork();
+        }
+        return unitOfWork;
+    }
 
     /**
      * commits the current local state to db to persist it

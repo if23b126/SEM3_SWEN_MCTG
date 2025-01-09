@@ -18,7 +18,7 @@ public class UserService extends AbstractService {
     private Base64.Encoder encoder;
 
     public UserService() {
-        userRepository = new UserRepositoryImpl(new UnitOfWork());
+        userRepository = new UserRepositoryImpl(UnitOfWork.getInstance());
         encoder = Base64.getEncoder();
     }
 

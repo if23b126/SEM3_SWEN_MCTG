@@ -5,6 +5,7 @@ import httpserver.server.Response;
 import monstercardtradinggame.model.Card;
 
 import java.util.Collection;
+import java.util.List;
 
 public interface GameRepository {
     Boolean createPackage(Collection<Card> cards, int userID);
@@ -12,5 +13,5 @@ public interface GameRepository {
     Collection<Card> getCards(int userID);
     Collection<Card> getDeck(int userID);
     Boolean createDeck(int userID, String[] cards);
-    int battle(int userID);
+    List<String> battle(int userID);
 }
