@@ -6,6 +6,7 @@ import httpserver.http.HttpStatus;
 import httpserver.server.Request;
 import httpserver.server.Response;
 import monstercardtradinggame.model.Card;
+import monstercardtradinggame.model.Stat;
 import monstercardtradinggame.model.User;
 import monstercardtradinggame.persistence.UnitOfWork;
 import monstercardtradinggame.persistence.repository.GameRepository;
@@ -173,11 +174,52 @@ public class GameService extends AbstractService {
     }
 
     public Response getStats(Request request) {
-        return new Response(HttpStatus.OK);
+        String token = null;
+        if(request.getHeaderMap().getHeader("Authorization") != null) {
+            token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        }
+        Response response;
+        if(userRepository.checkIfUserIsLoggedIn(token)) {
+            int userID = userRepository.getUserIDFromToken(token);
+            Stat stats = userRepository.getStats(userID);
+
+            String json = null;
+            try{
+                json = this.getObjectMapper().writeValueAsString(stats);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+
+            response = new Response(HttpStatus.OK, ContentType.JSON, json);
+        } else {
+            response = new Response(HttpStatus.UNAUTHORIZED);
+        }
+
+        return response;
     }
 
     public Response getScoreboards(Request request) {
-        return new Response(HttpStatus.OK);
+        String token = null;
+        if(request.getHeaderMap().getHeader("Authorization") != null) {
+            token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        }
+        Response response;
+        if(userRepository.checkIfUserIsLoggedIn(token)) {
+            List<Stat> stats = userRepository.getScoreboard();
+
+            String json = null;
+            try{
+                json = this.getObjectMapper().writeValueAsString(stats);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+
+            response = new Response(HttpStatus.OK, ContentType.JSON, json);
+        } else {
+            response = new Response(HttpStatus.UNAUTHORIZED);
+        }
+
+        return response;
     }
 
     public Response battle(Request request) {

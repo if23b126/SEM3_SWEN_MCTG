@@ -39,7 +39,7 @@ public class GameController implements RestController {
             return this.gameService.putDeck(request);
         } else if(request.getMethod() == Method.GET && request.getPathname().equals("/stats")) {
             return this.gameService.getStats(request);
-        } else if(request.getMethod() == Method.GET && request.getPathname().equals("/scoreboards")) {
+        } else if(request.getMethod() == Method.GET && request.getPathname().equals("/scoreboard")) {
             return this.gameService.getScoreboards(request);
         } else if(request.getMethod() == Method.POST && request.getPathname().equals("/battles")) {
             return this.gameService.battle(request);

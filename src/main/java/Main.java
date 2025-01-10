@@ -30,7 +30,7 @@ public class Main {
         router.addService("/cards", new GameController());
         router.addService("/deck", new GameController());
         router.addService("/stats", new GameController());
-        router.addService("/scoreboards", new GameController());
+        router.addService("/scoreboard", new GameController());
         router.addService("/battles", new GameController());
 
         return router;

@@ -1,5 +1,6 @@
 package monstercardtradinggame.persistence.repository;
 
+import monstercardtradinggame.model.Stat;
 import monstercardtradinggame.model.Token;
 import monstercardtradinggame.persistence.DataAccessException;
 import monstercardtradinggame.persistence.UnitOfWork;
@@ -8,6 +9,8 @@ import monstercardtradinggame.model.User;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UserRepositoryImpl implements UserRepository {
     private UnitOfWork unitOfWork;
@@ -285,27 +288,64 @@ public class UserRepositoryImpl implements UserRepository {
         return result;
     }
 
-    /**
-     * updates the stats for the given user id
-     * @param userID user id for which the stats are updated
-     * @param stat true in case the user won, false in case the user lost
-     * @return if the SQL was successful
-     */
     @Override
-    public Boolean updateStats(int userID, int stat) {
+    public Boolean updateStats(int initiatorID, int opponentID, int stat) {
         Boolean result = false;
         try(PreparedStatement update = this.unitOfWork.prepareStatement("""
                 UPDATE public.users
-                SET wins=?, losses=?, ties=?
+                SET wins=?, losses=?, ties=?, elo=?
                 WHERE id=?;
             """)) {
 
-            int[] rounds = getStats(userID);
-            update.setInt(1, stat == 1 ? rounds[0] + 1 : rounds[0]);
-            update.setInt(2, stat == -1 ? rounds[1] + 1 : rounds[1]);
-            update.setInt(3, stat == 0 ? rounds[2] + 1 : rounds[2]);
-            update.setInt(4, userID);
-            update.executeUpdate();
+            Stat initiator = getStats(initiatorID);
+            Stat opponent = getStats(opponentID);
+
+            int[] newElos = stat != 2 ? calculateElo(initiator.getElo(), opponent.getElo(), stat) : new int[]{initiator.getElo(), opponent.getElo()};
+
+            if(stat == 1) {
+                update.setInt(1, initiator.getWins() + 1);
+                update.setInt(2, initiator.getLosses());
+                update.setInt(3, initiator.getTies());
+                update.setInt(4, newElos[0]);
+                update.setInt(5, initiatorID);
+                update.executeUpdate();
+
+                update.setInt(1, opponent.getWins());
+                update.setInt(2, opponent.getLosses() + 1);
+                update.setInt(3, opponent.getTies());
+                update.setInt(4, newElos[1]);
+                update.setInt(5, opponentID);
+                update.executeUpdate();
+            } else if (stat == 0) {
+                update.setInt(1, initiator.getWins());
+                update.setInt(2, initiator.getLosses() + 1);
+                update.setInt(3, initiator.getTies());
+                update.setInt(4, newElos[0]);
+                update.setInt(5, initiatorID);
+                update.executeUpdate();
+
+                update.setInt(1, opponent.getWins() + 1);
+                update.setInt(2, opponent.getLosses());
+                update.setInt(3, opponent.getTies());
+                update.setInt(4, newElos[1]);
+                update.setInt(5, opponentID);
+                update.executeUpdate();
+            } else if (stat == 2) {
+                update.setInt(1, initiator.getWins());
+                update.setInt(2, initiator.getLosses());
+                update.setInt(3, initiator.getTies() + 1);
+                update.setInt(4, newElos[0]);
+                update.setInt(5, initiatorID);
+                update.executeUpdate();
+
+                update.setInt(1, opponent.getWins());
+                update.setInt(2, opponent.getLosses());
+                update.setInt(3, opponent.getTies() + 1);
+                update.setInt(4, newElos[1]);
+                update.setInt(5, opponentID);
+                update.executeUpdate();
+            }
+
             result = true;
             this.unitOfWork.commitTransaction();
 
@@ -317,22 +357,63 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
 
-    public int[] getStats(int userID) {
-        int[] result = new int[3];
+    @Override
+    public Stat getStats(int userID) {
+        Stat result = null;
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""
-                SELECT wins, losses, ties FROM public.users
+                SELECT name, wins, losses, ties, elo FROM public.users
                 WHERE id=?
             """)) {
             select.setInt(1, userID);
             ResultSet rs = select.executeQuery();
             while (rs.next()) {
-                result[0] = rs.getInt(1);
-                result[1] = rs.getInt(2);
-                result[2] = rs.getInt(3);
+                result = Stat.builder()
+                        .name(rs.getString(1))
+                        .wins(rs.getInt(2))
+                        .losses(rs.getInt(3))
+                        .ties(rs.getInt(4))
+                        .elo(rs.getInt(5))
+                        .build();
             }
         } catch(SQLException e){
             throw new DataAccessException("Get Stats From User SQL nicht erfolgreich", e);
         }
+
+        return result;
+    }
+
+    @Override
+    public List<Stat> getScoreboard() {
+        List<Stat> result = new ArrayList<>();
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT name, wins, losses, ties, elo
+                FROM public.users
+                ORDER BY elo DESC
+            """)) {
+            ResultSet rs = select.executeQuery();
+            while (rs.next()) {
+                result.add(Stat.builder()
+                        .name(rs.getString(1))
+                        .wins(rs.getInt(2))
+                        .losses(rs.getInt(3))
+                        .ties(rs.getInt(4))
+                        .elo(rs.getInt(5))
+                        .build());
+            }
+        } catch(SQLException e){
+            throw new DataAccessException("Get Stats From User SQL nicht erfolgreich", e);
+        }
+
+        return result;
+    }
+
+    private int[] calculateElo(int initiator, int opponent, int stat) {
+        int[] result = new int[2];
+        double initiatorProbability = 1.0 / (1 + Math.pow(10, (initiator - opponent) / 400.0));
+        double opponentProbability = 1.0 / (1 + Math.pow(10, (opponent - initiator) / 400.0));
+
+        result[0] = (int)(initiator + 12 * (stat - initiatorProbability));
+        result[1] = (int)(opponent + 12 * ((1 - stat) - opponentProbability));
 
         return result;
     }

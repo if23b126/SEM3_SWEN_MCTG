@@ -474,16 +474,13 @@ public class GameRepositoryImpl implements GameRepository {
         }
         if(opponentCards.isEmpty()){
             gameLog.addFirst("You Won!");
-            userRepository.updateStats(initiator, 1);
-            userRepository.updateStats(opponent, -1);
+            userRepository.updateStats(initiator, opponent, 1);
         } else if(initiatorCards.isEmpty()){
             gameLog.addFirst("You Lost!");
-            userRepository.updateStats(initiator, -1);
-            userRepository.updateStats(opponent, 1);
+            userRepository.updateStats(initiator, opponent, 0);
         } else {
             gameLog.addFirst("It's a tie");
-            userRepository.updateStats(initiator, 0);
-            userRepository.updateStats(opponent, 0);
+            userRepository.updateStats(initiator, opponent, 2);
         }
         return gameLog;
     }
@@ -493,7 +490,7 @@ public class GameRepositoryImpl implements GameRepository {
         if(initiatorCard.getName().toLowerCase().contains("spell") || opponentCard.getName().toLowerCase().contains("spell")) {
             if (initiatorCard.getName().equalsIgnoreCase("waterspell") && opponentCard.getName().equalsIgnoreCase("knight")) {
                 result = Integer.MAX_VALUE;
-            } else if (initiatorCard.getName().equalsIgnoreCase("kngith") && opponentCard.getName().equalsIgnoreCase("waterspell")) {
+            } else if (initiatorCard.getName().equalsIgnoreCase("knight") && opponentCard.getName().equalsIgnoreCase("waterspell")) {
                 result = Integer.MIN_VALUE;
             } else if (initiatorCard.getName().equalsIgnoreCase("kraken") && opponentCard.getName().toLowerCase().contains("spell")) {
                 result = Integer.MAX_VALUE;

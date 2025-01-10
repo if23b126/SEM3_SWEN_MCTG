@@ -1,7 +1,10 @@
 package monstercardtradinggame.persistence.repository;
 
 
+import monstercardtradinggame.model.Stat;
 import monstercardtradinggame.model.User;
+
+import java.util.List;
 
 public interface UserRepository {
 
@@ -16,5 +19,7 @@ public interface UserRepository {
     User.UserInfo getUserData(int userID);
     Boolean updateUserData(User.UserInfo user, int userID);
     String getUsernameFromID(int userID);
-    Boolean updateStats(int userID, int stat);
+    Boolean updateStats(int initiatorID, int opponentID, int stat);
+    Stat getStats(int userID);
+    List<Stat> getScoreboard();
 }
