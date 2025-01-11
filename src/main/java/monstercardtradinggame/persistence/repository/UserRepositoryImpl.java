@@ -407,6 +407,27 @@ public class UserRepositoryImpl implements UserRepository {
         return result;
     }
 
+    @Override
+    public int getOwnerFromCard(String cardID) {
+        int result = -1;
+
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT owned_by
+                FROM public.cards
+                WHERE id=?
+            """)) {
+            select.setString(1, cardID);
+            ResultSet rs = select.executeQuery();
+            while (rs.next()) {
+                result = rs.getInt(1);
+            }
+        } catch(SQLException e){
+            throw new DataAccessException("Get Owner From User SQL nicht erfolgreich", e);
+        }
+
+        return result;
+    }
+
     private int[] calculateElo(int initiator, int opponent, int stat) {
         int[] result = new int[2];
         double initiatorProbability = 1.0 / (1 + Math.pow(10, (initiator - opponent) / 400.0));
@@ -450,16 +471,23 @@ public class UserRepositoryImpl implements UserRepository {
      * @return true if user is logged in, false if not
      */
     public Boolean userLoggedIn(String username) {
+        Boolean result = false;
         try (PreparedStatement select = this.unitOfWork.prepareStatement("""
-                SELECT * FROM public.currently_logged_in
+                SELECT count(*) FROM public.currently_logged_in
                         where username = ?
                 """)){
             select.setString(1, username);
             ResultSet rs = select.executeQuery();
-            return rs.next();
+            while(rs.next()) {
+                if(rs.getInt(1) == 1) {
+                    result = true;
+                }
+            }
 
         } catch(SQLException e) {
             throw new DataAccessException("userLoggedIn SQL nicht erfolgreich", e);
         }
+
+        return result;
     }
 }

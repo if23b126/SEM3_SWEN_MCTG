@@ -7,6 +7,7 @@ import httpserver.server.Request;
 import httpserver.server.Response;
 import monstercardtradinggame.model.Card;
 import monstercardtradinggame.model.Stat;
+import monstercardtradinggame.model.Trading;
 import monstercardtradinggame.model.User;
 import monstercardtradinggame.persistence.UnitOfWork;
 import monstercardtradinggame.persistence.repository.GameRepository;
@@ -239,6 +240,104 @@ public class GameService extends AbstractService {
                     logString += line + "\n";
                 }
                 response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, logString);
+            }
+        } else {
+            response = new Response(HttpStatus.UNAUTHORIZED);
+        }
+
+        return response;
+    }
+
+    public Response getTradings(Request request) {
+        String token = null;
+        if(request.getHeaderMap().getHeader("Authorization") != null) {
+            token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        }
+        Response response;
+        if(userRepository.checkIfUserIsLoggedIn(token)) {
+            List<Trading> tradings = gameRepository.getTradings();
+
+            String json = null;
+            try{
+                json = this.getObjectMapper().writeValueAsString(tradings);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+
+            response = new Response(HttpStatus.OK, ContentType.JSON, json);
+        } else {
+            response = new Response(HttpStatus.UNAUTHORIZED);
+        }
+
+        return response;
+    }
+
+    public Response createTrading(Request request) {
+        String token = null;
+        if(request.getHeaderMap().getHeader("Authorization") != null) {
+            token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        }
+        Response response;
+        if(userRepository.checkIfUserIsLoggedIn(token)) {
+            Trading trading;
+            try {
+                trading = this.getObjectMapper().readValue(request.getBody(), Trading.class);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+
+            if(gameRepository.createTrading(trading)) {
+                response = new Response(HttpStatus.CREATED);
+            } else {
+                response = new Response(HttpStatus.CONFLICT);
+            }
+
+        } else {
+            response = new Response(HttpStatus.UNAUTHORIZED);
+        }
+
+        return response;
+    }
+
+    public Response acceptTrading(Request request) {
+        String token = null;
+        if(request.getHeaderMap().getHeader("Authorization") != null) {
+            token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        }
+        Response response;
+        if(userRepository.checkIfUserIsLoggedIn(token)) {
+            String offer = gameRepository.getCardFromTradingID(request.getPathname().substring(10));
+            String acceptance = request.getBody().replace("\"", "");
+
+            if (userRepository.getUserIDFromToken(token) != userRepository.getOwnerFromCard(acceptance)) {
+                response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "The card you offered doesn't belong to you!");
+            }else if(gameRepository.acceptTrading(offer, acceptance, userRepository.getOwnerFromCard(offer), userRepository.getOwnerFromCard(acceptance))) {
+                response = new Response(HttpStatus.OK);
+            } else {
+                response = new Response(HttpStatus.CONFLICT);
+            }
+        } else {
+            response = new Response(HttpStatus.UNAUTHORIZED);
+        }
+
+        return response;
+    }
+
+    public Response deleteTrading(Request request) {
+        String token = null;
+        if(request.getHeaderMap().getHeader("Authorization") != null) {
+            token = request.getHeaderMap().getHeader("Authorization").substring(7);
+        }
+        Response response;
+        if(userRepository.checkIfUserIsLoggedIn(token)) {
+            String trading = gameRepository.getCardFromTradingID(request.getPathname().substring(10));
+
+            if (userRepository.getUserIDFromToken(token) != userRepository.getOwnerFromCard(trading)) {
+                response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "The Offer doesn't belong to you!");
+            }else if(gameRepository.deleteTrading(trading)) {
+                response = new Response(HttpStatus.OK);
+            } else {
+                response = new Response(HttpStatus.CONFLICT);
             }
         } else {
             response = new Response(HttpStatus.UNAUTHORIZED);

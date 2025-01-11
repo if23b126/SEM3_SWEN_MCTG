@@ -32,7 +32,7 @@ public class Main {
         router.addService("/stats", new GameController());
         router.addService("/scoreboard", new GameController());
         router.addService("/battles", new GameController());
-
+        router.addService("/tradings", new GameController());
         return router;
     }
 }

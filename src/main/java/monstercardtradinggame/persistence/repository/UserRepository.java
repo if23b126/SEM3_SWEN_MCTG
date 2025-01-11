@@ -22,4 +22,5 @@ public interface UserRepository {
     Boolean updateStats(int initiatorID, int opponentID, int stat);
     Stat getStats(int userID);
     List<Stat> getScoreboard();
+    int getOwnerFromCard(String cardID);
 }

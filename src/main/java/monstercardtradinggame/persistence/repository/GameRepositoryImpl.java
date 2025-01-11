@@ -1,6 +1,7 @@
 package monstercardtradinggame.persistence.repository;
 
 import monstercardtradinggame.model.Card;
+import monstercardtradinggame.model.Trading;
 import monstercardtradinggame.persistence.DataAccessException;
 import monstercardtradinggame.persistence.UnitOfWork;
 
@@ -33,8 +34,8 @@ public class GameRepositoryImpl implements GameRepository {
             """, true);
             PreparedStatement insert_cards = this.unitOfWork.prepareStatement("""
                 INSERT INTO public.cards
-                    (id, name, damage, type)
-                VALUES(?, ?, ?, ?);
+                    (id, name, damage, specialty, type)
+                VALUES(?, ?, ?, ?, ?);
             """);
             PreparedStatement insert_relations = this.unitOfWork.prepareStatement("""
                 INSERT INTO public.cards_in_packages
@@ -71,6 +72,11 @@ public class GameRepositoryImpl implements GameRepository {
                         insert_cards.setString(4, "fire");
                     } else {
                         insert_cards.setString(4, "normal");
+                    }
+                    if(card.getName().toLowerCase().contains("spell")){
+                        insert_cards.setString(5, "spell");
+                    } else {
+                        insert_cards.setString(5, "monster");
                     }
 
                     insert_relations.setString(1, card.getId());
@@ -360,6 +366,118 @@ public class GameRepositoryImpl implements GameRepository {
         return response;
     }
 
+    @Override
+    public List<Trading> getTradings() {
+        List<Trading> tradings = new ArrayList<>();
+
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT t.id, t.card_id, c.type, c.damage
+                FROM public.trading t
+                LEFT JOIN public.cards c ON t.card_id=c.id
+                WHERE t.isActive=true
+            """)) {
+            ResultSet rs = select.executeQuery();
+            while(rs.next()) {
+                tradings.add(Trading.builder()
+                        .id(rs.getString(1))
+                        .cardToTrade(rs.getString(2))
+                        .type(rs.getString(3))
+                        .minimumDamage(rs.getInt(4))
+                        .build());
+            }
+        } catch(SQLException e) {
+            throw new DataAccessException("getTradings SQL nicht erfolgreich", e);
+        }
+
+        return tradings;
+    }
+
+    @Override
+    public Boolean createTrading(Trading trading) {
+        Boolean result = false;
+
+        try(PreparedStatement insert = this.unitOfWork.prepareStatement("""
+                INSERT INTO public.trading
+                (id, card_id)
+                VALUES(?, ?);
+            """)) {
+            insert.setString(1, trading.getId());
+            insert.setString(2, trading.getCardToTrade());
+            insert.executeUpdate();
+            
+            result = true;
+            this.unitOfWork.commitTransaction();
+        } catch(SQLException e) {
+            this.unitOfWork.rollbackTransaction();
+            throw new DataAccessException("createTrading SQL nicht erfolgreich", e);
+        }
+        
+        return result;
+    }
+
+    @Override
+    public Boolean acceptTrading(String offer, String acceptance, int offer_userID, int acceptance_userID) {
+        Boolean result = false;
+
+        try(PreparedStatement update_trading = this.unitOfWork.prepareStatement("""
+                UPDATE public.trading
+                SET isactive=false
+                WHERE card_id=?
+            """);
+            PreparedStatement update_cards = this.unitOfWork.prepareStatement("""
+                UPDATE public.cards
+                SET owned_by=?
+                WHERE id=?
+            """)) {
+
+            if(offer_userID != acceptance_userID) {
+                update_trading.setString(1, offer);
+                update_trading.executeUpdate();
+
+                update_cards.setInt(1, offer_userID);
+                update_cards.setString(2, acceptance);
+                update_cards.executeUpdate();
+
+                update_cards.setInt(1, acceptance_userID);
+                update_cards.setString(2, offer);
+                update_cards.executeUpdate();
+
+                this.unitOfWork.commitTransaction();
+                result = true;
+            } else {
+                result = false;
+            }
+
+        } catch(SQLException e){
+            this.unitOfWork.rollbackTransaction();
+            throw new DataAccessException("acceptTrading SQL nicht erfolgreich", e);
+        }
+
+        return result;
+    }
+
+    @Override
+    public Boolean deleteTrading(String trading) {
+        Boolean result = false;
+
+        try(PreparedStatement update = this.unitOfWork.prepareStatement("""
+                UPDATE public.trading
+                SET isactive=false
+                WHERE card_id=?
+            """)) {
+            update.setString(1, trading);
+            update.executeUpdate();
+
+            result = true;
+            this.unitOfWork.commitTransaction();
+        } catch(SQLException e) {
+            this.unitOfWork.rollbackTransaction();
+            throw new DataAccessException("deleteTrading SQL nicht erfolgreich", e);
+        }
+
+        return result;
+    }
+
     private Boolean checkIfCardExist(Collection<Card> cards) {
         Boolean response = false;
         try(PreparedStatement select_count = this.unitOfWork.prepareStatement("""
@@ -390,6 +508,27 @@ public class GameRepositoryImpl implements GameRepository {
         }
 
         return response;
+    }
+
+    @Override
+    public String getCardFromTradingID(String tradingID) {
+        String result = null;
+
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT card_id
+                FROM public.trading
+                WHERE id=?
+            """)) {
+            select.setString(1, tradingID);
+            ResultSet rs = select.executeQuery();
+            if(rs.next()) {
+                result = rs.getString(1);
+            }
+        } catch(SQLException e) {
+            throw new DataAccessException("getCardFromTradingID SQL nicht erfolgreich", e);
+        }
+
+        return result;
     }
 
     private Boolean checkCardOwnership(int userID, String[] cards) {

@@ -43,6 +43,14 @@ public class GameController implements RestController {
             return this.gameService.getScoreboards(request);
         } else if(request.getMethod() == Method.POST && request.getPathname().equals("/battles")) {
             return this.gameService.battle(request);
+        } else if (request.getMethod() == Method.GET && request.getPathname().equals("/tradings")) {
+            return this.gameService.getTradings(request);
+        } else if(request.getMethod() == Method.POST && request.getPathname().equals("/tradings")) {
+            return this.gameService.createTrading(request);
+        } else if(request.getMethod() == Method.POST && request.getPathname().contains("/tradings/")) {
+            return this.gameService.acceptTrading(request);
+        } else if(request.getMethod() == Method.DELETE && request.getPathname().contains("/tradings/")) {
+            return this.gameService.deleteTrading(request);
         } else {
             return new Response(HttpStatus.BAD_REQUEST,
                     ContentType.JSON,
