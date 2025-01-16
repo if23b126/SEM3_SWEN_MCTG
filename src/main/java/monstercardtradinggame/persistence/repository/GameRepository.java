@@ -7,7 +7,7 @@ import java.util.Collection;
 import java.util.List;
 
 public interface GameRepository {
-    Boolean createPackage(Collection<Card> cards, int userID);
+    int createPackage(Collection<Card> cards, int userID);
     int buyPackage(int userID);
     Collection<Card> getCards(int userID);
     Collection<Card> getDeck(int userID);
@@ -18,4 +18,5 @@ public interface GameRepository {
     Boolean acceptTrading(String offer, String acceptance, int offer_userID, int acceptance_userID);
     Boolean deleteTrading(String trading);
     String getCardFromTradingID(String tradingID);
+    Boolean checkIfTradingExists(String tradingID);
 }

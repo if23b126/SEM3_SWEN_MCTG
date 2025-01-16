@@ -1,0 +1,13 @@
+
+services:
+  postgres:
+    container_name: SWEN_mctg
+    image: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - ./data:/var/lib/postgresql/
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      - POSTGRES_PASSWORD=mctg
+      - POSTGRES_USER=mctg

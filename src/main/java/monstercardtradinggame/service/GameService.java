@@ -49,16 +49,21 @@ public class GameService extends AbstractService {
             }
 
             if(userRepository.checkIfUserIsAdmin(token)) {
-                if(gameRepository.createPackage(cards, userRepository.getUserIDFromToken(token))) {
-                    response = new Response(HttpStatus.CREATED);
-                } else {
-                    response = new Response(HttpStatus.CONFLICT);
+                switch(gameRepository.createPackage(cards, userRepository.getUserIDFromToken(token))) {
+                    case 0:
+                        response = new Response(HttpStatus.CREATED);
+                        break;
+                    case 1:
+                        response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "At least one card in the packages already exists");
+                        break;
+                    default:
+                        response = new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.PLAIN_TEXT, "Something went wrong");
                 }
             } else {
-                response = new Response(HttpStatus.FORBIDDEN);
+                response = new Response(HttpStatus.FORBIDDEN, ContentType.PLAIN_TEXT, "Provided user is not \"admin\"");
             }
         } else {
-            response = new Response(HttpStatus.UNAUTHORIZED);
+            response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "User is not logged in");
         }
         return response;
     }
@@ -72,16 +77,16 @@ public class GameService extends AbstractService {
         if(userRepository.checkIfUserIsLoggedIn(token)) {
             switch(gameRepository.buyPackage(userRepository.getUserIDFromToken(token))) {
                 case -1:
-                    response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "Not enough money");
+                    response = new Response(HttpStatus.FORBIDDEN, ContentType.PLAIN_TEXT, "Not enough money for buying a card package");
                     break;
                 case 1:
-                    response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "No packages available");
+                    response = new Response(HttpStatus.NOT_FOUND, ContentType.PLAIN_TEXT, "No card package available for buying");
                     break;
                 default:
-                    response = new Response(HttpStatus.CREATED);
+                    response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "A package has been successfully bought");
             }
         } else {
-            response = new Response(HttpStatus.UNAUTHORIZED);
+            response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");
         }
 
         return response;
@@ -95,16 +100,20 @@ public class GameService extends AbstractService {
         Response response;
         if(userRepository.checkIfUserIsLoggedIn(token)) {
             Collection<Card> cards = gameRepository.getCards(userRepository.getUserIDFromToken(token));
-            String json = null;
-            try{
-                json = this.getObjectMapper().writeValueAsString(cards);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            if(cards.isEmpty()) {
+                String json = null;
+                try {
+                    json = this.getObjectMapper().writeValueAsString(cards);
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
 
-            response = new Response(HttpStatus.OK, ContentType.JSON, json);
+                response = new Response(HttpStatus.OK, ContentType.JSON, json);
+            } else {
+                response = new Response(HttpStatus.NO_CONTENT, ContentType.PLAIN_TEXT, "The request was fine, but the user doesn't have any cards");
+            }
         } else {
-            response = new Response(HttpStatus.UNAUTHORIZED);
+            response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");
         }
 
         return response;
@@ -118,27 +127,31 @@ public class GameService extends AbstractService {
         Response response;
         if(userRepository.checkIfUserIsLoggedIn(token)) {
             Collection<Card> cards = gameRepository.getDeck(userRepository.getUserIDFromToken(token));
-            if (asPlainString) {
-                String plain = "";
-                int counter = 1;
+            if(cards.isEmpty()) {
+                if (asPlainString) {
+                    String plain = "";
+                    int counter = 1;
 
-                for(Card card : cards) {
-                    plain += "Card " + counter++ + "\n" + card.toString() + "\n";
+                    for (Card card : cards) {
+                        plain += "Card " + counter++ + "\n" + card.toString() + "\n";
+                    }
+
+                    response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, plain);
+                } else {
+                    String json = null;
+                    try {
+                        json = this.getObjectMapper().writeValueAsString(cards);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    response = new Response(HttpStatus.OK, ContentType.JSON, json);
                 }
-
-                response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, plain);
             } else {
-                String json = null;
-                try{
-                    json = this.getObjectMapper().writeValueAsString(cards);
-                } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
-                }
-
-                response = new Response(HttpStatus.OK, ContentType.JSON, json);
+                response = new Response(HttpStatus.NO_CONTENT, ContentType.PLAIN_TEXT, "The request was fine, but the deck doesn't have any cards");
             }
         } else {
-            response = new Response(HttpStatus.UNAUTHORIZED);
+            response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");
         }
 
         return response;
@@ -160,15 +173,15 @@ public class GameService extends AbstractService {
                     .split(",");
 
             if(cards.length != 4) {
-                response = new Response(HttpStatus.CONFLICT);
+                response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "The provided deck did not include the required amount of cards");
             }
             else if(gameRepository.createDeck(userRepository.getUserIDFromToken(token), cards)) {
-                response = new Response(HttpStatus.CREATED);
+                response = new Response(HttpStatus.CREATED, ContentType.PLAIN_TEXT, "The deck has been successfully configured");
             } else {
-                response = new Response(HttpStatus.CONFLICT);
+                response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "At least one of the provided cards does not belong to the user or is not available.");
             }
         } else {
-            response = new Response(HttpStatus.UNAUTHORIZED);
+            response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");
         }
 
         return response;
@@ -193,7 +206,7 @@ public class GameService extends AbstractService {
 
             response = new Response(HttpStatus.OK, ContentType.JSON, json);
         } else {
-            response = new Response(HttpStatus.UNAUTHORIZED);
+            response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");
         }
 
         return response;
@@ -217,7 +230,7 @@ public class GameService extends AbstractService {
 
             response = new Response(HttpStatus.OK, ContentType.JSON, json);
         } else {
-            response = new Response(HttpStatus.UNAUTHORIZED);
+            response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");
         }
 
         return response;
@@ -242,7 +255,7 @@ public class GameService extends AbstractService {
                 response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, logString);
             }
         } else {
-            response = new Response(HttpStatus.UNAUTHORIZED);
+            response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");
         }
 
         return response;
@@ -266,7 +279,7 @@ public class GameService extends AbstractService {
 
             response = new Response(HttpStatus.OK, ContentType.JSON, json);
         } else {
-            response = new Response(HttpStatus.UNAUTHORIZED);
+            response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");
         }
 
         return response;
@@ -286,14 +299,20 @@ public class GameService extends AbstractService {
                 throw new RuntimeException(e);
             }
 
-            if(gameRepository.createTrading(trading)) {
-                response = new Response(HttpStatus.CREATED);
+            if(userRepository.getOwnerFromCard(trading.getCardToTrade()) == userRepository.getUserIDFromToken(token)) {
+                if (!gameRepository.checkIfTradingExists(trading.getId())) {
+                    response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "A deal with this deal ID already exists.");
+                } else if (gameRepository.createTrading(trading)) {
+                    response = new Response(HttpStatus.CREATED, ContentType.PLAIN_TEXT, "Trading deal successfully created");
+                } else {
+                    response = new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.PLAIN_TEXT, "Something went wrong");
+                }
             } else {
-                response = new Response(HttpStatus.CONFLICT);
+                response = new Response(HttpStatus.FORBIDDEN, ContentType.PLAIN_TEXT, "The deal contains a card that is not owned by the user or locked in the deck.");
             }
 
         } else {
-            response = new Response(HttpStatus.UNAUTHORIZED);
+            response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");
         }
 
         return response;
@@ -310,14 +329,16 @@ public class GameService extends AbstractService {
             String acceptance = request.getBody().replace("\"", "");
 
             if (userRepository.getUserIDFromToken(token) != userRepository.getOwnerFromCard(acceptance)) {
-                response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "The card you offered doesn't belong to you!");
-            }else if(gameRepository.acceptTrading(offer, acceptance, userRepository.getOwnerFromCard(offer), userRepository.getOwnerFromCard(acceptance))) {
-                response = new Response(HttpStatus.OK);
+                response = new Response(HttpStatus.FORBIDDEN, ContentType.PLAIN_TEXT, "The offered card is not owned by the user.");
+            } else if (!gameRepository.checkIfTradingExists(offer)) {
+                response = new Response(HttpStatus.NOT_FOUND, ContentType.PLAIN_TEXT, "The provided deal ID was not found.");
+            } else if(gameRepository.acceptTrading(offer, acceptance, userRepository.getOwnerFromCard(offer), userRepository.getOwnerFromCard(acceptance))) {
+                response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "Trading deal successfully executed.");
             } else {
-                response = new Response(HttpStatus.CONFLICT);
+                response = new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.PLAIN_TEXT, "Something went wrong");
             }
         } else {
-            response = new Response(HttpStatus.UNAUTHORIZED);
+            response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");
         }
 
         return response;
@@ -333,14 +354,16 @@ public class GameService extends AbstractService {
             String trading = gameRepository.getCardFromTradingID(request.getPathname().substring(10));
 
             if (userRepository.getUserIDFromToken(token) != userRepository.getOwnerFromCard(trading)) {
-                response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "The Offer doesn't belong to you!");
+                response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "The deal contains a card that is not owned by the user.");
+            } else if (!gameRepository.checkIfTradingExists(trading)) {
+                response = new Response(HttpStatus.NOT_FOUND, ContentType.PLAIN_TEXT, "The provided deal ID was not found.");
             }else if(gameRepository.deleteTrading(trading)) {
-                response = new Response(HttpStatus.OK);
+                response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "Trading deal successfully deleted.");
             } else {
-                response = new Response(HttpStatus.CONFLICT);
+                response = new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.PLAIN_TEXT, "Something went wrong");
             }
         } else {
-            response = new Response(HttpStatus.UNAUTHORIZED);
+            response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");
         }
 
         return response;

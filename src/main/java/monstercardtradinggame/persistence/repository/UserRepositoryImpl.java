@@ -249,15 +249,17 @@ public class UserRepositoryImpl implements UserRepository {
                 SET name=?, bio=?, image=?
                 WHERE id=?
             """)) {
-            update.setString(1, user.getName());
-            update.setString(2, user.getBio());
-            update.setString(3, user.getImage());
-            update.setInt(4, userID);
+            if(userExists(getUsernameFromID(userID)) != null) {
+                update.setString(1, user.getName());
+                update.setString(2, user.getBio());
+                update.setString(3, user.getImage());
+                update.setInt(4, userID);
 
-            update.executeUpdate();
-            result = true;
+                update.executeUpdate();
+                result = true;
 
-            this.unitOfWork.commitTransaction();
+                this.unitOfWork.commitTransaction();
+            }
         } catch(SQLException e){
             this.unitOfWork.rollbackTransaction();
             throw new DataAccessException("Update UserData From User SQL nicht erfolgreich", e);

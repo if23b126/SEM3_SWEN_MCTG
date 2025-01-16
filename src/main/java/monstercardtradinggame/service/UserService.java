@@ -41,7 +41,7 @@ public class UserService extends AbstractService {
         String token = userRepository.login(loginTry.getUsername().toLowerCase(), password); // persists login in db
 
         if (token == null) {
-            return new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Login failed");
+            return new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Invalid username/password provided");
         } else
         {
             return new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, token);
@@ -115,12 +115,14 @@ public class UserService extends AbstractService {
                     throw new RuntimeException(e);
                 }
                 response = new Response(HttpStatus.OK, ContentType.JSON, json);
+            } else if(userRepository.checkIfUserIsAdmin(token)) {
+                response = new Response(HttpStatus.FORBIDDEN, ContentType.PLAIN_TEXT, "User is no Admin");
             } else {
-                response = new Response(HttpStatus.UNAUTHORIZED);
+                response = new Response(HttpStatus.NOT_FOUND, ContentType.PLAIN_TEXT, "User not found");
             }
 
         } else {
-            response = new Response(HttpStatus.UNAUTHORIZED);
+            response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");
         }
 
         return response;
@@ -148,7 +150,7 @@ public class UserService extends AbstractService {
                     response = new Response(HttpStatus.CONFLICT);
                 }
             } else {
-                response = new Response(HttpStatus.UNAUTHORIZED);
+                response = new Response(HttpStatus.FORBIDDEN, ContentType.PLAIN_TEXT, "The Token and the User don't match");
             }
 
         } else {

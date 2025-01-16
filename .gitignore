@@ -38,6 +38,8 @@ build/
 ### Mac OS ###
 .DS_Store
 
+### Exclude DB data Folder ###
+/Database/data
 
-### Exclude ToDo Folder
+### Exclude ToDo Folder ###
 ToDo

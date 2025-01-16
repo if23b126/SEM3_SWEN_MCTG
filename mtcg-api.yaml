@@ -34,7 +34,7 @@ paths:
         '201':
           description: User successfully created
         '409':
-          description: User with same username already registered
+          description: User already exists
   /users/{username}:
     get:
       tags:
@@ -58,6 +58,8 @@ paths:
                 $ref: '#/components/schemas/UserData'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: 'User is no Admin'
         '404':
           description: User not found.
       security:
@@ -66,7 +68,7 @@ paths:
       tags:
         - users
       summary: Updates the user data for the given username.
-      description: Retrieves the user data for the username provided in the route. Only the admin or the matching user can successfully retrieve the data.
+      description: Changes the user data for the given user. Only the User itself can change its data.
       parameters:
         - in: path
           name: username
@@ -86,8 +88,10 @@ paths:
           description: User sucessfully updated.
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '404':
-          description: User not found.
+        '403':
+          description: The Token and the User don't match
+        '409':
+          description: Somthing went wrong
       security:
         - mtcgAuth: []
   /sessions:
@@ -105,14 +109,14 @@ paths:
       responses:
         '200':
           description: User login successful
-        '401':
-          description: Invalid username/password provided
           content:
             application/json:
               schema:
                 type: string
                 description: The token for authenticated users.
                 example: kienboec-mtcgToken
+        '401':
+          description: Invalid username/password provided
   /packages:
     post:
       tags:
@@ -138,6 +142,8 @@ paths:
           description: Provided user is not "admin"
         '409':
           description: At least one card in the packages already exists
+        '500':
+            description: Something went wrong
       security:
         - mtcgAuth: []
   /transactions/packages:
@@ -149,12 +155,6 @@ paths:
       responses:
         '200':
           description: A package has been successfully bought
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Card'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -212,6 +212,26 @@ paths:
               schema:
                 type: string
                 description: The textual deck description.
+                example: "Card 1: \n
+                          \tID: 3fa85f64-5717-4562-b3fc-2c963f66afa6,\n
+                          \tName: WaterGoblin,\n
+                          \tDamage: 55\n
+                          \tType: monster\n
+                          Card 2: \n
+                          \tID: 3fa85f64-5717-4562-b3fc-2c963f66afa6,\n
+                          \tName: WaterGoblin,\n
+                          \tDamage: 55\n
+                          \tType: monster\n
+                          Card 3: \n
+                          \tID: 3fa85f64-5717-4562-b3fc-2c963f66afa6,\n
+                          \tName: WaterGoblin,\n
+                          \tDamage: 55\n
+                          \tType: monster\n
+                          Card 4: \n
+                          \tID: 3fa85f64-5717-4562-b3fc-2c963f66afa6,\n
+                          \tName: WaterGoblin,\n
+                          \tDamage: 55\n
+                          \tType: monster"
         '204':
           description: The request was fine, but the deck doesn't have any cards
         '401':
@@ -294,7 +314,7 @@ paths:
             text/plain:
               schema:
                 type: string
-                description: The battle log.
+                description: The battle log OR Waiting for Opponent
         '401':
           $ref: '#/components/responses/UnauthorizedError'
       security:
@@ -339,6 +359,8 @@ paths:
           description: The deal contains a card that is not owned by the user or locked in the deck.
         '409':
           description: A deal with this deal ID already exists.
+        '500':
+          description: Something went wrong
       security:
         - mtcgAuth: []
   /tradings/{tradingdealid}:
@@ -364,6 +386,8 @@ paths:
           description: The deal contains a card that is not owned by the user.
         '404':
           description: The provided deal ID was not found.
+        '500':
+          description: Something went wrong
       security:
         - mtcgAuth: []
     post:
@@ -392,9 +416,11 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
-          description: The offered card is not owned by the user, or the requirements are not met (Type, MinimumDamage), or the offered card is locked in the deck, or the user tries to trade with self
+          description: The offered card is not owned by the user.
         '404':
           description: The provided deal ID was not found.
+        '500':
+          description: Something went wrong.
       security:
         - mtcgAuth: []
 

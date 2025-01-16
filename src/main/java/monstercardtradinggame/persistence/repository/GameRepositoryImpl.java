@@ -24,8 +24,8 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     @Override
-    public Boolean createPackage(Collection<Card> cards, int userID) {
-        Boolean response = false;
+    public int createPackage(Collection<Card> cards, int userID) {
+        int response = -1;
 
         try(PreparedStatement insert_package = this.unitOfWork.prepareStatement("""
                 INSERT INTO public.packages
@@ -86,9 +86,11 @@ public class GameRepositoryImpl implements GameRepository {
                     insert_relations.executeUpdate();
                 }
 
-                response = true;
+                response = 0;
 
                 this.unitOfWork.commitTransaction();
+            } else {
+                response = 1;
             }
 
         } catch (SQLException e){
@@ -413,6 +415,28 @@ public class GameRepositoryImpl implements GameRepository {
         }
         
         return result;
+    }
+
+    @Override
+    public Boolean checkIfTradingExists(String tradingId) {
+        Boolean response = false;
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT count(*)
+                FROM public.trading
+                WHERE id=?
+            """)) {
+            select.setString(1, tradingId);
+            ResultSet rs = select.executeQuery();
+            while(rs.next()) {
+                if(rs.getInt(1) != 0) {
+                    response = true;
+                }
+            }
+        } catch(SQLException e) {
+            throw new DataAccessException("checkIfTradingExists SQL nicht erfolgreich", e);
+        }
+
+        return response;
     }
 
     @Override
