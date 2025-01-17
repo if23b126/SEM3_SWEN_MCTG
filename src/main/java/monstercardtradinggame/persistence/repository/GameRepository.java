@@ -11,12 +11,12 @@ public interface GameRepository {
     int buyPackage(int userID);
     Collection<Card> getCards(int userID);
     Collection<Card> getDeck(int userID);
-    Boolean createDeck(int userID, String[] cards);
+    boolean createDeck(int userID, String[] cards);
     List<String> battle(int userID);
     List<Trading> getTradings();
-    Boolean createTrading(Trading trading);
-    Boolean acceptTrading(String offer, String acceptance, int offer_userID, int acceptance_userID);
-    Boolean deleteTrading(String trading);
+    boolean createTrading(Trading trading);
+    boolean acceptTrading(String offer, String acceptance, int offer_userID, int acceptance_userID);
+    boolean deleteTrading(String trading);
     String getCardFromTradingID(String tradingID);
-    Boolean checkIfTradingExists(String tradingID);
+    boolean checkIfTradingExists(String tradingID);
 }

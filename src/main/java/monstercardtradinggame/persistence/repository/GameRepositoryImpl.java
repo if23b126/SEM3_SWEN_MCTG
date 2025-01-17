@@ -239,8 +239,8 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     @Override
-    public Boolean createDeck(int userID, String[] cards) {
-        Boolean result = false;
+    public boolean createDeck(int userID, String[] cards) {
+        boolean result = false;
 
         try(PreparedStatement delete_relation = this.unitOfWork.prepareStatement("""
                 DELETE FROM public.cards_in_decks
@@ -347,8 +347,8 @@ public class GameRepositoryImpl implements GameRepository {
         return result;
     }
 
-    private Boolean checkIfPackageAvailable(){
-        Boolean response = false;
+    private boolean checkIfPackageAvailable(){
+        boolean response = false;
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""
                 SELECT count(*) FROM public.packages
                 WHERE is_bought=false
@@ -395,20 +395,24 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     @Override
-    public Boolean createTrading(Trading trading) {
-        Boolean result = false;
+    public boolean createTrading(Trading trading) {
+        boolean result = false;
 
         try(PreparedStatement insert = this.unitOfWork.prepareStatement("""
                 INSERT INTO public.trading
-                (id, card_id)
-                VALUES(?, ?);
+                (id, card_id, type, minimumdamage)
+                VALUES(?, ?, ?, ?);
             """)) {
-            insert.setString(1, trading.getId());
-            insert.setString(2, trading.getCardToTrade());
-            insert.executeUpdate();
-            
-            result = true;
-            this.unitOfWork.commitTransaction();
+            if(!(checkIfCardIsInDeck(trading.getCardToTrade()))) {
+                insert.setString(1, trading.getId());
+                insert.setString(2, trading.getCardToTrade());
+                insert.setString(3, trading.getType());
+                insert.setInt(4, trading.getMinimumDamage());
+                insert.executeUpdate();
+
+                result = true;
+                this.unitOfWork.commitTransaction();
+            }
         } catch(SQLException e) {
             this.unitOfWork.rollbackTransaction();
             throw new DataAccessException("createTrading SQL nicht erfolgreich", e);
@@ -418,8 +422,8 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     @Override
-    public Boolean checkIfTradingExists(String tradingId) {
-        Boolean response = false;
+    public boolean checkIfTradingExists(String tradingId) {
+        boolean response = false;
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""
                 SELECT count(*)
                 FROM public.trading
@@ -427,10 +431,8 @@ public class GameRepositoryImpl implements GameRepository {
             """)) {
             select.setString(1, tradingId);
             ResultSet rs = select.executeQuery();
-            while(rs.next()) {
-                if(rs.getInt(1) != 0) {
-                    response = true;
-                }
+            if(rs.next()) {
+                response = rs.getInt(1) != 0;
             }
         } catch(SQLException e) {
             throw new DataAccessException("checkIfTradingExists SQL nicht erfolgreich", e);
@@ -440,8 +442,8 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     @Override
-    public Boolean acceptTrading(String offer, String acceptance, int offer_userID, int acceptance_userID) {
-        Boolean result = false;
+    public boolean acceptTrading(String offer, String acceptance, int offer_userID, int acceptance_userID) {
+        boolean result = false;
 
         try(PreparedStatement update_trading = this.unitOfWork.prepareStatement("""
                 UPDATE public.trading
@@ -452,9 +454,20 @@ public class GameRepositoryImpl implements GameRepository {
                 UPDATE public.cards
                 SET owned_by=?
                 WHERE id=?
+            """);
+            PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT type, damage
+                FROM public.cards
+                WHERE id=?
             """)) {
 
-            if(offer_userID != acceptance_userID) {
+            Trading tradeOffer = getTrading(offer);
+            Card acceptanceCard = getCardFromId(acceptance);
+
+            if(offer_userID != acceptance_userID &&
+                    acceptanceCard.getDamage() >= tradeOffer.getMinimumDamage() &&
+                    acceptanceCard.getType().equals(tradeOffer.getType()) &&
+                    !(checkIfCardIsInDeck(acceptanceCard.getId()))) {
                 update_trading.setString(1, offer);
                 update_trading.executeUpdate();
 
@@ -480,9 +493,78 @@ public class GameRepositoryImpl implements GameRepository {
         return result;
     }
 
+    private boolean checkIfCardIsInDeck(String cardId) {
+        boolean response = false;
+
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT count(*)
+                FROM public.cards_in_decks
+                WHERE card_id=?
+            """)) {
+            select.setString(1, cardId);
+            ResultSet rs = select.executeQuery();
+            if(rs.next()) {
+                response = rs.getInt(1) != 0;
+            }
+        } catch(SQLException e) {
+            throw new DataAccessException("checkIfCardIsInDeckSQL nicht erfolgreich", e);
+        }
+
+        return response;
+    }
+
+    private Card getCardFromId(String cardId) {
+        Card card = null;
+
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT name, damage, type
+                FROM public.cards
+                WHERE id=?
+            """)) {
+            select.setString(1, cardId);
+            ResultSet rs = select.executeQuery();
+            while(rs.next()) {
+                card = Card.builder()
+                        .id(cardId)
+                        .name(rs.getString(1))
+                        .damage(rs.getInt(2))
+                        .type(rs.getString(3))
+                        .build();
+            }
+        } catch(SQLException e) {
+            throw new DataAccessException("getCardFromId SQL nicht erfolgreich", e);
+        }
+
+        return card;
+    }
+
+    private Trading getTrading(String tradingId) {
+        Trading response = null;
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT id, card_id, type, minimumdamage
+                FROM public.trading
+                WHERE card_id=?
+            """)){
+            select.setString(1, tradingId);
+            ResultSet rs = select.executeQuery();
+            while(rs.next()) {
+                response = Trading.builder()
+                        .id(rs.getString(1))
+                        .cardToTrade(rs.getString(2))
+                        .type(rs.getString(3))
+                        .minimumDamage(rs.getInt(4))
+                        .build();
+            }
+        } catch(SQLException e) {
+            throw new DataAccessException("getTrading SQL nicht erfolgreich", e);
+        }
+
+        return response;
+    }
+
     @Override
-    public Boolean deleteTrading(String trading) {
-        Boolean result = false;
+    public boolean deleteTrading(String trading) {
+        boolean result = false;
 
         try(PreparedStatement update = this.unitOfWork.prepareStatement("""
                 UPDATE public.trading
@@ -502,8 +584,8 @@ public class GameRepositoryImpl implements GameRepository {
         return result;
     }
 
-    private Boolean checkIfCardExist(Collection<Card> cards) {
-        Boolean response = false;
+    private boolean checkIfCardExist(Collection<Card> cards) {
+        boolean response = false;
         try(PreparedStatement select_count = this.unitOfWork.prepareStatement("""
                 SELECT count(*) FROM public.cards
             """);
@@ -555,8 +637,8 @@ public class GameRepositoryImpl implements GameRepository {
         return result;
     }
 
-    private Boolean checkCardOwnership(int userID, String[] cards) {
-        Boolean result = true;
+    private boolean checkCardOwnership(int userID, String[] cards) {
+        boolean result = true;
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""
                 SELECT owned_by FROM public.cards
                 WHERE id=?
@@ -577,8 +659,8 @@ public class GameRepositoryImpl implements GameRepository {
         return result;
     }
 
-    private Boolean checkIfDeckExist(int userID) {
-        Boolean response = false;
+    private boolean checkIfDeckExist(int userID) {
+        boolean response = false;
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""
                 SELECT count(*) FROM public.decks
                 WHERE user_id=?
@@ -603,8 +685,8 @@ public class GameRepositoryImpl implements GameRepository {
 
         List<Card> initiatorCards = (List<Card>)getDeck(initiator);
         List<Card> opponentCards = (List<Card>)getDeck(opponent);
-        Boolean initiatorRedemption = false;
-        Boolean opponentRedemption = false;
+        boolean initiatorRedemption = false;
+        boolean opponentRedemption = false;
 
         for(int i = 0; i < 100; i++) {
             Random rand = new Random();

@@ -16,8 +16,18 @@ public class User {
     private String username;
     @JsonAlias({"Password"})
     private String password;
-    @JsonAlias({"token"})
-    private String token;
+    @JsonAlias({"Coins"})
+    private int coins;
+    @JsonAlias({"isAdmin"})
+    private boolean isAdmin;
+    @JsonAlias({"Wins"})
+    private int wins;
+    @JsonAlias({"Losses"})
+    private int losses;
+    @JsonAlias({"Ties"})
+    private int ties;
+    @JsonAlias({"Elo"})
+    private int elo;
 
     @Builder.Default
     private UserInfo userInfo = new UserInfo(null, null, null);

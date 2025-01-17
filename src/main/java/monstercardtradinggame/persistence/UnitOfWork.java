@@ -19,6 +19,10 @@ public class UnitOfWork implements AutoCloseable {
         }
     }
 
+    public UnitOfWork(Connection connection) {
+        this.connection = connection;
+    }
+
     public static UnitOfWork getInstance() {
         if (unitOfWork == null) {
             unitOfWork = new UnitOfWork();

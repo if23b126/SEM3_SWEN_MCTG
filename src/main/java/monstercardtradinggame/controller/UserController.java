@@ -7,12 +7,13 @@ import httpserver.server.Request;
 import httpserver.server.Response;
 import httpserver.server.RestController;
 import monstercardtradinggame.service.UserService;
+import monstercardtradinggame.service.UserServiceImpl;
 
 public class UserController implements RestController {
     private UserService userService;
 
     public UserController(){
-        this.userService = new UserService();
+        this.userService = new UserServiceImpl();
     }
 
 
@@ -25,7 +26,7 @@ public class UserController implements RestController {
     public Response handleRequest(Request request) {
         if (request.getMethod() == Method.POST && request.getPathname().equals("/sessions")) {
             return this.userService.loginUser(request);
-        } else if (request.getMethod() == Method.POST && request.getPathname().equals("/users/logout")) {
+        } else if (request.getMethod() == Method.GET && request.getPathname().equals("/users/logout")) {
             return this.userService.logoutUser(request);
         } else if (request.getMethod() == Method.POST && request.getPathname().equals("/users")) {
             return this.userService.registerUser(request);

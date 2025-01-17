@@ -60,8 +60,8 @@ public class UserRepositoryImpl implements UserRepository {
      * @return true is successful, false if failed
      */
     @Override
-    public Boolean logout(String token) {
-        Boolean result = false;
+    public boolean logout(String token) {
+        boolean result = false;
         try (PreparedStatement delete = this.unitOfWork.prepareStatement("""
                 DELETE FROM public.currently_logged_in 
                 where token = ?
@@ -88,8 +88,8 @@ public class UserRepositoryImpl implements UserRepository {
      * @return true is successful, false if failed
      */
     @Override
-    public Boolean register(String username, String password) {
-        Boolean result = false;
+    public boolean register(String username, String password) {
+        boolean result = false;
         try (PreparedStatement insert = this.unitOfWork.prepareStatement("""
                 INSERT into public.users (username, password)
                 values (?, ?)
@@ -112,8 +112,8 @@ public class UserRepositoryImpl implements UserRepository {
 
 
     @Override
-    public Boolean checkIfUserIsLoggedIn(String token) {
-        Boolean result = false;
+    public boolean checkIfUserIsLoggedIn(String token) {
+        boolean result = false;
         try (PreparedStatement select = this.unitOfWork.prepareStatement("""
                 SELECT * FROM public.currently_logged_in 
                 where token = ?
@@ -157,8 +157,8 @@ public class UserRepositoryImpl implements UserRepository {
 
 
     @Override
-    public Boolean checkIfUserIsAdmin(String token) {
-        Boolean result = false;
+    public boolean checkIfUserIsAdmin(String token) {
+        boolean result = false;
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""
             SELECT isAdmin
             FROM public.currently_logged_in cli
@@ -242,8 +242,8 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public Boolean updateUserData(User.UserInfo user, int userID) {
-        Boolean result = false;
+    public boolean updateUserData(User.UserInfo user, int userID) {
+        boolean result = false;
         try(PreparedStatement update = this.unitOfWork.prepareStatement("""
                 UPDATE public.users
                 SET name=?, bio=?, image=?
@@ -291,8 +291,8 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public Boolean updateStats(int initiatorID, int opponentID, int stat) {
-        Boolean result = false;
+    public boolean updateStats(int initiatorID, int opponentID, int stat) {
+        boolean result = false;
         try(PreparedStatement update = this.unitOfWork.prepareStatement("""
                 UPDATE public.users
                 SET wins=?, losses=?, ties=?, elo=?
@@ -472,8 +472,8 @@ public class UserRepositoryImpl implements UserRepository {
      * @param username
      * @return true if user is logged in, false if not
      */
-    public Boolean userLoggedIn(String username) {
-        Boolean result = false;
+    public boolean userLoggedIn(String username) {
+        boolean result = false;
         try (PreparedStatement select = this.unitOfWork.prepareStatement("""
                 SELECT count(*) FROM public.currently_logged_in
                         where username = ?

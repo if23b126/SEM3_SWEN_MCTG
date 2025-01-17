@@ -7,12 +7,13 @@ import httpserver.server.Request;
 import httpserver.server.Response;
 import httpserver.server.RestController;
 import monstercardtradinggame.service.GameService;
+import monstercardtradinggame.service.GameServiceImpl;
 
 public class GameController implements RestController {
     private GameService gameService;
 
     public GameController(){
-        this.gameService = new GameService();
+        this.gameService = new GameServiceImpl();
     }
 
 

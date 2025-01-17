@@ -117,6 +117,19 @@ paths:
                 example: kienboec-mtcgToken
         '401':
           description: Invalid username/password provided
+  /users/logout:
+    get:
+      tags:
+        - users
+      summary: Logout a user
+      description: Logout a user with the given token
+      responses:
+        '200':
+          description: User successfully logged out
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Something went wrong
   /packages:
     post:
       tags:
