@@ -9,62 +9,32 @@ import monstercardtradinggame.persistence.repository.UserRepositoryImpl;
 import monstercardtradinggametest.persistence.*;
 
 import org.junit.jupiter.api.*;
-import org.postgresql.core.ConnectionFactory;
-import org.testcontainers.containers.PostgreSQLContainer;
-
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class UserServiceTest {
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
-            "postgres:latest"
-    );
     static UserRepository userRepository;
     static UserRespositoryTest userRespositoryTest;
-    static PrepareUser prepareUser;
-    static CleanUp cleanUp;
     static Base64.Encoder encoder;
 
     @BeforeAll
     static void beforeAll() {
-        postgres.start();
         encoder = Base64.getEncoder();
     }
 
-    @AfterAll
-    static void tearDown() {
-        cleanUp.deleteTableUsers();
-        cleanUp.deleteTableLogin();
-        postgres.stop();
-    }
-
-    @BeforeEach
-    void setUp() {
-        Connection connection = null;
-        try {
-            connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-            connection.setAutoCommit(false);
-        } catch(SQLException e) {
-            throw new DataAccessException("Datanbankverbindung fehlgeschlagen", e);
-        }
-        UnitOfWork unitOfWork = new UnitOfWork(connection);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-        userRespositoryTest = new UserRepositoryTestImpl(unitOfWork);
-        prepareUser = new PrepareUserImpl(unitOfWork);
-        cleanUp = new CleanUpImpl(unitOfWork);
-    }
 
     @Test
     public void createUserTest() {
-        prepareUser.prepareTableForCreateUserTest();
+        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:register_user.sql'";
+        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
+        userRepository = new UserRepositoryImpl(unitOfWork);
+        userRespositoryTest = new UserRepositoryTestImpl(unitOfWork);
 
         String username = "test";
         String password = encoder.encodeToString("test".getBytes());
+        System.out.println(password);
         userRepository.register(username, password);
 
         User user = userRespositoryTest.getUsers();
@@ -72,7 +42,7 @@ public class UserServiceTest {
         assertEquals("test", user.getUsername());
         assertEquals(password, user.getPassword());
         assertEquals(20, user.getCoins());
-        assertEquals(false, user.isAdmin());
+        assertFalse(user.isAdmin());
         assertEquals(0, user.getWins());
         assertEquals(0, user.getLosses());
         assertEquals(0, user.getTies());
@@ -90,8 +60,10 @@ public class UserServiceTest {
 
     @Test
     public void loginUserTest() {
-        prepareUser.prepareTableForCreateUserTest();
-        prepareUser.prepareTableForLoginUserTest();
+        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:login_user.sql'";
+        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
+        userRepository = new UserRepositoryImpl(unitOfWork);
+        userRespositoryTest = new UserRepositoryTestImpl(unitOfWork);
 
         String username = "test";
         String password = encoder.encodeToString("test".getBytes());

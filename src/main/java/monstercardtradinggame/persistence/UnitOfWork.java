@@ -1,9 +1,6 @@
 package monstercardtradinggame.persistence;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 public class UnitOfWork implements AutoCloseable {
 
@@ -19,8 +16,13 @@ public class UnitOfWork implements AutoCloseable {
         }
     }
 
-    public UnitOfWork(Connection connection) {
-        this.connection = connection;
+    public UnitOfWork(String url) {
+        try {
+            this.connection = DriverManager.getConnection(url, "", "");
+            this.connection.setAutoCommit(false);
+        } catch (SQLException e) {
+            throw new DataAccessException("UnitOfWork testverbindung nicht erfolgreich", e);
+        }
     }
 
     public static UnitOfWork getInstance() {
