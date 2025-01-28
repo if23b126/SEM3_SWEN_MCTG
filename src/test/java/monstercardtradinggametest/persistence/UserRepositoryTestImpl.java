@@ -1,5 +1,6 @@
 package monstercardtradinggametest.persistence;
 
+import monstercardtradinggame.model.Stat;
 import monstercardtradinggame.model.User;
 import monstercardtradinggame.persistence.DataAccessException;
 import monstercardtradinggame.persistence.UnitOfWork;
