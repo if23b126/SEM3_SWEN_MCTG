@@ -61,4 +61,33 @@ public class UserRepositoryTestImpl implements UserRespositoryTest {
 
         return result;
     }
+
+    @Override
+    public User getUserFromID(int id) {
+        User result = null;
+        try(PreparedStatement select = this.unitOfWork.prepareStatement("""
+                SELECT username, password, coins, isadmin, wins, losses, ties, elo
+                FROM public.users
+                WHERE id = ?
+            """)) {
+            select.setInt(1, id);
+            ResultSet rs = select.executeQuery();
+            if (rs.next()) {
+                result = User.builder()
+                        .username(rs.getString(1))
+                        .password(rs.getString(2))
+                        .coins(rs.getInt(3))
+                        .isAdmin(rs.getBoolean(4))
+                        .wins(rs.getInt(5))
+                        .losses(rs.getInt(6))
+                        .ties(rs.getInt(7))
+                        .elo(rs.getInt(8))
+                        .build();
+            }
+        } catch(SQLException e) {
+            throw new DataAccessException("getUserFromID Test failed", e);
+        }
+
+        return result;
+    }
 }

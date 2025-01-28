@@ -5,6 +5,7 @@ import monstercardtradinggame.model.Token;
 import monstercardtradinggame.model.User;
 import monstercardtradinggame.persistence.DataAccessException;
 import monstercardtradinggame.persistence.UnitOfWork;
+import monstercardtradinggame.persistence.repository.GameRepositoryImpl;
 import monstercardtradinggame.persistence.repository.UserRepository;
 import monstercardtradinggame.persistence.repository.UserRepositoryImpl;
 import monstercardtradinggametest.persistence.*;
@@ -35,7 +36,6 @@ public class UserServiceTest {
 
         String username = "test";
         String password = encoder.encodeToString("test".getBytes());
-        System.out.println(password);
         userRepository.register(username, password);
 
         User user = userRespositoryTest.getUsers();
@@ -307,5 +307,16 @@ public class UserServiceTest {
         assertEquals("newTestName", test1.getName());
         assertEquals("I am the destroyer", test1.getBio());
         assertEquals("xD", test1.getImage());
+    }
+
+    @Test
+    public void getOwnerFromCardTest() {
+        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:gamePersistence/all_without_trade_battle.sql'";
+        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
+        userRepository = new UserRepositoryImpl(unitOfWork);
+
+        int userID = userRepository.getOwnerFromCard("f3fad0f2-a1af-45df-b80d-2e48825773d9");
+
+        assertEquals(2, userID);
     }
 }

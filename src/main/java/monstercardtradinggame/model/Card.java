@@ -14,8 +14,12 @@ public class Card {
     private String name;
     @JsonAlias({"Damage"})
     private int damage;
+    @JsonAlias({"Specialty"})
+    private String specialty;
     @JsonAlias({"Type"})
     private String type;
+    @JsonAlias({"OwnedBy"})
+    private int ownedBy;
 
     @Override
     public String toString() {

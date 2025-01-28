@@ -191,7 +191,7 @@ public class GameRepositoryImpl implements GameRepository {
     public Collection<Card> getCards(int userID) {
         Collection<Card> cards = new ArrayList<>();
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""
-                SELECT * FROM public.cards
+                SELECT id, "name", damage, specialty, "type", owned_by FROM public.cards
                 WHERE owned_by=?
             """)) {
             select.setInt(1, userID);
@@ -201,7 +201,9 @@ public class GameRepositoryImpl implements GameRepository {
                         .id(result.getString(1))
                         .name(result.getString(2))
                         .damage(result.getInt(3))
-                        .type(result.getString(4))
+                        .specialty(result.getString(4))
+                        .type(result.getString(5))
+                        .ownedBy(result.getInt(6))
                         .build());
             }
         } catch(SQLException e) {
@@ -215,7 +217,7 @@ public class GameRepositoryImpl implements GameRepository {
     public Collection<Card> getDeck(int userID) {
         Collection<Card> cards = new ArrayList<>();
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""
-                SELECT c.* FROM public.cards_in_decks cid
+                SELECT c.id, c."name", c.damage, c.specialty, c."type", c.owned_by FROM public.cards_in_decks cid
                 LEFT JOIN public.cards c
                 ON cid.card_id=c.id AND c.owned_by=?
             """)) {
@@ -227,7 +229,9 @@ public class GameRepositoryImpl implements GameRepository {
                         .id(result.getString(1))
                         .name(result.getString(2))
                         .damage(result.getInt(3))
-                        .type(result.getString(4))
+                        .specialty(result.getString(4))
+                        .type(result.getString(5))
+                        .ownedBy(result.getInt(6))
                         .build());
                 }
             }
@@ -373,10 +377,9 @@ public class GameRepositoryImpl implements GameRepository {
         List<Trading> tradings = new ArrayList<>();
 
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""
-                SELECT t.id, t.card_id, c.type, c.damage
-                FROM public.trading t
-                LEFT JOIN public.cards c ON t.card_id=c.id
-                WHERE t.isActive=true
+                SELECT id, card_id, "type", minimumdamage
+                FROM public.trading
+                WHERE isactive=true
             """)) {
             ResultSet rs = select.executeQuery();
             while(rs.next()) {
@@ -422,14 +425,14 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     @Override
-    public boolean checkIfTradingExists(String tradingId) {
+    public boolean checkIfTradingExists(String cardID) {
         boolean response = false;
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""
                 SELECT count(*)
                 FROM public.trading
-                WHERE id=?
+                WHERE card_id=?
             """)) {
-            select.setString(1, tradingId);
+            select.setString(1, cardID);
             ResultSet rs = select.executeQuery();
             if(rs.next()) {
                 response = rs.getInt(1) != 0;
@@ -476,7 +479,7 @@ public class GameRepositoryImpl implements GameRepository {
                 update_cards.executeUpdate();
 
                 update_cards.setInt(1, acceptance_userID);
-                update_cards.setString(2, offer);
+                update_cards.setString(2, tradeOffer.getCardToTrade());
                 update_cards.executeUpdate();
 
                 this.unitOfWork.commitTransaction();
@@ -769,6 +772,8 @@ public class GameRepositoryImpl implements GameRepository {
                 result = Integer.MAX_VALUE;
             } else if (initiatorCard.getName().equalsIgnoreCase("dragon") && opponentCard.getName().equalsIgnoreCase("fireelve")) {
                 result = Integer.MIN_VALUE;
+            } else {
+                result = initiatorCard.getDamage();
             }
         }
 

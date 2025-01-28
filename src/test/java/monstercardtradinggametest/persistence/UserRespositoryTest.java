@@ -6,4 +6,5 @@ import monstercardtradinggame.model.User;
 public interface UserRespositoryTest {
     User getUsers();
     String[] getCurrentlyLoggedInUser();
+    User getUserFromID(int id);
 }

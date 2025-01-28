@@ -191,7 +191,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Card'
-        '204':
+        '409':
           description: The request was fine, but the user doesn't have any cards
         '401':
           $ref: '#/components/responses/UnauthorizedError'
@@ -245,7 +245,7 @@ paths:
                           \tName: WaterGoblin,\n
                           \tDamage: 55\n
                           \tType: monster"
-        '204':
+        '409':
           description: The request was fine, but the deck doesn't have any cards
         '401':
           $ref: '#/components/responses/UnauthorizedError'

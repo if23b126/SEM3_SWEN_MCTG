@@ -97,7 +97,7 @@ public class GameServiceImpl extends AbstractService implements GameService {
         Response response;
         if(userRepository.checkIfUserIsLoggedIn(token)) {
             Collection<Card> cards = gameRepository.getCards(userRepository.getUserIDFromToken(token));
-            if(cards.isEmpty()) {
+            if(!cards.isEmpty()) {
                 String json = null;
                 try {
                     json = this.getObjectMapper().writeValueAsString(cards);
@@ -107,7 +107,7 @@ public class GameServiceImpl extends AbstractService implements GameService {
 
                 response = new Response(HttpStatus.OK, ContentType.JSON, json);
             } else {
-                response = new Response(HttpStatus.NO_CONTENT, ContentType.PLAIN_TEXT, "The request was fine, but the user doesn't have any cards");
+                response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "The request was fine, but the user doesn't have any cards");
             }
         } else {
             response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");
@@ -125,7 +125,7 @@ public class GameServiceImpl extends AbstractService implements GameService {
         Response response;
         if(userRepository.checkIfUserIsLoggedIn(token)) {
             Collection<Card> cards = gameRepository.getDeck(userRepository.getUserIDFromToken(token));
-            if(cards.isEmpty()) {
+            if(!cards.isEmpty()) {
                 if (asPlainString) {
                     String plain = "";
                     int counter = 1;
@@ -146,7 +146,7 @@ public class GameServiceImpl extends AbstractService implements GameService {
                     response = new Response(HttpStatus.OK, ContentType.JSON, json);
                 }
             } else {
-                response = new Response(HttpStatus.NO_CONTENT, ContentType.PLAIN_TEXT, "The request was fine, but the deck doesn't have any cards");
+                response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "The request was fine, but the deck doesn't have any cards");
             }
         } else {
             response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");

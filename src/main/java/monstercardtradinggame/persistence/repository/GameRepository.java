@@ -18,5 +18,5 @@ public interface GameRepository {
     boolean acceptTrading(String offer, String acceptance, int offer_userID, int acceptance_userID);
     boolean deleteTrading(String trading);
     String getCardFromTradingID(String tradingID);
-    boolean checkIfTradingExists(String tradingID);
+    boolean checkIfTradingExists(String cardID);
 }
