@@ -137,18 +137,22 @@ CREATE TABLE public.ready_to_battle (
 
 ALTER TABLE public.ready_to_battle OWNER TO mctg;
 
+
 --
 -- Name: trading; Type: TABLE; Schema: public; Owner: mctg
 --
 
 CREATE TABLE public.trading (
-    id character varying(200),
-    card_id character varying(200),
-    isactive boolean DEFAULT true
+    id varchar(200) NULL,
+    card_id varchar(200) NULL,
+    isactive bool DEFAULT true NULL,
+    "type" varchar NULL,
+    minimumdamage int4 NULL,
+    CONSTRAINT trading_unique UNIQUE (id)
 );
 
+ALTER TABLE public.trading ADD CONSTRAINT trading_cards_fk FOREIGN KEY (card_id) REFERENCES public.cards(id);
 
-ALTER TABLE public.trading OWNER TO mctg;
 
 --
 -- Name: users; Type: TABLE; Schema: public; Owner: mctg
