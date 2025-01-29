@@ -1,123 +1,263 @@
 @startuml
-' Defining all classes
-enum game.Element{
-    fire
-    water
-    normal
+interface monstercardtradinggame.service.UserService {
+~ Response loginUser(Request)
+~ Response logoutUser(Request)
+~ Response registerUser(Request)
+~ Response getUserInfo(Request)
+~ Response setUserInfo(Request)
 }
 
-class game.Monster{
-    - String name
-    - int damage
-    - Element type
-}
-
-class game.Spell{
-    - String name
-    - int damage
-    - Element type
-}
-
-class game.Card{
-    - String name
-    - int damage
-    - Element type
-}
-
-class game.Package{
-    - List<Card> cards
-
-    + generatePackage()
-    + openPackage()
-}
-
-class game.Deck{
-    - List<Card> cards
-
-    + PickDeck(List<Card> cards)
-}
-
-class game.Battle{
-    + GoToBattle(Player fighterOne, Player fighterTwo)
-}
-
-class game.Trade{
-    + SetTrade(Player trader, Card cardWanted)
-    + AcceptTrade(Player trader, Card cardOffered)
-    + TradeCards(Player traderOne, Player traderTwoe, Card cardOne, Card cardTwo)
+class monstercardtradinggame.persistence.repository.UserRepositoryImpl {
+- UnitOfWork unitOfWork
++ <<Create>> UserRepositoryImpl(UnitOfWork)
++ String login(String,String)
++ boolean logout(String)
++ boolean register(String,String)
++ boolean checkIfUserIsLoggedIn(String)
++ int getUserIDFromToken(String)
++ boolean checkIfUserIsAdmin(String)
++ String getUsernameFromToken(String)
++ int getIDFromUsername(String)
++ User.UserInfo getUserData(int)
++ boolean updateUserData(User.UserInfo,int)
++ String getUsernameFromID(int)
++ boolean updateStats(int,int,int)
++ Stat getStats(int)
++ List<Stat> getScoreboard()
++ int getOwnerFromCard(String)
+- int[] calculateElo(int,int,int)
++ User userExists(String)
++ boolean userLoggedIn(String)
 }
 
 
-class shared.Player{
-    - String username
-    - String encryptedPassword
-    - Deck activeDeck
+class monstercardtradinggame.controller.GameController {
+- GameService gameService
++ <<Create>> GameController()
++ Response handleRequest(Request)
 }
 
-class socket.Server{
-    - Socket serverSocket
-    - Socket clientSocket
-    - String token
 
-    + StartServer()
+class monstercardtradinggame.persistence.UnitOfWork {
+- Connection connection
+- {static} UnitOfWork unitOfWork
++ <<Create>> UnitOfWork()
++ <<Create>> UnitOfWork(String)
++ {static} UnitOfWork getInstance()
++ void commitTransaction()
++ void finishWork()
++ PreparedStatement prepareStatement(String)
++ PreparedStatement prepareStatement(String,Boolean)
++ void rollbackTransaction()
++ void close()
 }
 
-class socket.Reader{
-    - Socket clientSocket
+
+class monstercardtradinggame.service.UserServiceImpl {
+- UserRepository userRepository
+- Base64.Encoder encoder
++ <<Create>> UserServiceImpl()
++ <<Create>> UserServiceImpl(UserRepository)
++ Response loginUser(Request)
++ Response logoutUser(Request)
++ Response registerUser(Request)
++ Response getUserInfo(Request)
++ Response setUserInfo(Request)
 }
 
-class socket.Writer{
-    - Socket clientSocket
+
+class monstercardtradinggame.persistence.repository.GameRepositoryImpl {
+- UnitOfWork unitOfWork
+- UserRepository userRepository
++ <<Create>> GameRepositoryImpl(UnitOfWork)
++ int createPackage(Collection<Card>,int)
++ int buyPackage(int)
++ Collection<Card> getCards(int)
++ Collection<Card> getDeck(int)
++ boolean createDeck(int,String[])
++ List<String> battle(int)
+- boolean checkIfPackageAvailable()
++ List<Trading> getTradings()
++ boolean createTrading(Trading)
++ boolean checkIfTradingExists(String)
++ boolean acceptTrading(String,String,int,int)
+- boolean checkIfCardIsInDeck(String)
+- Card getCardFromId(String)
+- Trading getTrading(String)
++ boolean deleteTrading(String)
+- boolean checkIfCardExist(Collection<Card>)
++ String getCardFromTradingID(String)
+- boolean checkCardOwnership(int,String[])
+- boolean checkIfDeckExist(int)
+- List<String> executeBattle(int,int)
+- int calculateDamage(Card,Card)
 }
 
-class socket.Validator{
-    + VerifyUser(String username, String token)
+
+class monstercardtradinggame.controller.EchoController {
++ Response handleRequest(Request)
 }
 
-class persistence.DatabaseConnector {
-    - String usernameRead
-    - String passwordRead
-    - String usernameWrite
-    - String passwordWrite
-
-    + ExecuteRead(String command)
-    + ExecuteWrite(String command, String[] data)
+interface monstercardtradinggame.service.GameService {
+~ Response createPackage(Request)
+~ Response buyPackage(Request)
+~ Response getCards(Request)
+~ Response getDeck(Request,Boolean)
+~ Response putDeck(Request)
+~ Response getStats(Request)
+~ Response getScoreboards(Request)
+~ Response battle(Request)
+~ Response getTradings(Request)
+~ Response createTrading(Request)
+~ Response acceptTrading(Request)
+~ Response deleteTrading(Request)
 }
 
-class persistence.DatabaseReader {
-
+class monstercardtradinggame.service.AbstractService {
+- ObjectMapper objectMapper
++ <<Create>> AbstractService()
++ ObjectMapper getObjectMapper()
 }
 
-class persistence.DatabaseWriter {
 
+class monstercardtradinggame.service.GameServiceImpl {
+- GameRepository gameRepository
+- UserRepository userRepository
++ <<Create>> GameServiceImpl()
++ <<Create>> GameServiceImpl(GameRepository,UserRepository)
++ Response createPackage(Request)
++ Response buyPackage(Request)
++ Response getCards(Request)
++ Response getDeck(Request,Boolean)
++ Response putDeck(Request)
++ Response getStats(Request)
++ Response getScoreboards(Request)
++ Response battle(Request)
++ Response getTradings(Request)
++ Response createTrading(Request)
++ Response acceptTrading(Request)
++ Response deleteTrading(Request)
 }
 
-' Define all Relations
-Card <|-- Spell
-Card <|-- Monster
-Card --* Trade
-Deck --* Battle : is used in
-Card -left-* Deck : is in
-Battle --o Player
-Package --o Player
 
-DatabaseConnector o-- DatabaseReader: uses
-DatabaseConnector o-- DatabaseWriter: uses
+class monstercardtradinggame.model.Card {
+- String id
+- String name
+- int damage
+- String specialty
+- String type
+- int ownedBy
++ String toString()
+}
 
-Server o-- Reader : uses
-Server o-- Writer : uses
-Server o-- Validator : uses
 
-Server --> game : implements
-Server --> persistence : uses
+interface monstercardtradinggame.persistence.repository.GameRepository {
+~ int createPackage(Collection<Card>,int)
+~ int buyPackage(int)
+~ Collection<Card> getCards(int)
+~ Collection<Card> getDeck(int)
+~ boolean createDeck(int,String[])
+~ List<String> battle(int)
+~ List<Trading> getTradings()
+~ boolean createTrading(Trading)
+~ boolean acceptTrading(String,String,int,int)
+~ boolean deleteTrading(String)
+~ String getCardFromTradingID(String)
+~ boolean checkIfTradingExists(String)
+}
 
-Element -- Card
-Element -- Monster
-Element -- Spell
+class monstercardtradinggame.persistence.DataAccessException {
++ <<Create>> DataAccessException(String)
++ <<Create>> DataAccessException(String,Throwable)
++ <<Create>> DataAccessException(Throwable)
+}
 
-' Monster <-- Spell
-' User <.. Spell
-' Package <|-- Spell
-' Deck <|.. Spell
+class monstercardtradinggame.model.User {
+- String username
+- String password
+- int coins
+- boolean isAdmin
+- int wins
+- int losses
+- int ties
+- int elo
+- UserInfo userInfo
+}
 
+class monstercardtradinggame.model.User$UserInfo {
+- String name
+- String bio
+- String image
+}
+
+class monstercardtradinggame.model.Stat {
+- String name
+- int elo
+- int wins
+- int losses
+- int ties
+}
+
+interface monstercardtradinggame.persistence.repository.UserRepository {
+~ String login(String,String)
+~ boolean logout(String)
+~ boolean register(String,String)
+~ boolean checkIfUserIsLoggedIn(String)
+~ int getUserIDFromToken(String)
+~ boolean checkIfUserIsAdmin(String)
+~ String getUsernameFromToken(String)
+~ int getIDFromUsername(String)
+~ User.UserInfo getUserData(int)
+~ boolean updateUserData(User.UserInfo,int)
+~ String getUsernameFromID(int)
+~ boolean updateStats(int,int,int)
+~ Stat getStats(int)
+~ List<Stat> getScoreboard()
+~ int getOwnerFromCard(String)
+~ User userExists(String)
+}
+
+class monstercardtradinggame.model.Trading {
+- String id
+- String cardToTrade
+- String type
+- int minimumDamage
+}
+
+class monstercardtradinggame.model.Token {
+- SecureRandom secureRandom
+- Base64.Encoder base64Encoder
++ <<Create>> Token()
++ String generateNewToken()
++ String generateNewToken(String)
+}
+
+
+enum monstercardtradinggame.persistence.DatabaseManager {
++  INSTANCE
++ Connection getConnection()
+}
+
+
+class monstercardtradinggame.controller.UserController {
+- UserService userService
++ <<Create>> UserController()
++ Response handleRequest(Request)
+}
+
+
+
+
+monstercardtradinggame.persistence.repository.UserRepository <|.. monstercardtradinggame.persistence.repository.UserRepositoryImpl
+httpserver.server.RestController <|.. monstercardtradinggame.controller.GameController
+monstercardtradinggame.persistence.AutoCloseable <|.. monstercardtradinggame.persistence.UnitOfWork
+monstercardtradinggame.service.UserService <|.. monstercardtradinggame.service.UserServiceImpl
+monstercardtradinggame.service.AbstractService <|-- monstercardtradinggame.service.UserServiceImpl
+monstercardtradinggame.persistence.repository.GameRepository <|.. monstercardtradinggame.persistence.repository.GameRepositoryImpl
+httpserver.server.RestController <|.. monstercardtradinggame.controller.EchoController
+monstercardtradinggame.service.GameService <|.. monstercardtradinggame.service.GameServiceImpl
+monstercardtradinggame.service.AbstractService <|-- monstercardtradinggame.service.GameServiceImpl
+monstercardtradinggame.persistence.RuntimeException <|-- monstercardtradinggame.persistence.DataAccessException
+monstercardtradinggame.model.User +.. monstercardtradinggame.model.User$UserInfo
+httpserver.server.RestController <|.. monstercardtradinggame.controller.UserController
 @enduml
