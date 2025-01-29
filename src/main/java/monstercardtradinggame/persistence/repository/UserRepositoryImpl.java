@@ -115,7 +115,7 @@ public class UserRepositoryImpl implements UserRepository {
     public boolean checkIfUserIsLoggedIn(String token) {
         boolean result = false;
         try (PreparedStatement select = this.unitOfWork.prepareStatement("""
-                SELECT * FROM public.currently_logged_in 
+                SELECT * FROM public.currently_logged_in
                 where token = ?
                 """))
         {
@@ -249,7 +249,10 @@ public class UserRepositoryImpl implements UserRepository {
                 SET name=?, bio=?, image=?
                 WHERE id=?
             """)) {
-            if(userExists(getUsernameFromID(userID)) != null) {
+            if(userExists(getUsernameFromID(userID)) != null &&
+                user.getName() != null &&
+                user.getBio() != null &&
+                user.getImage() != null) {
                 update.setString(1, user.getName());
                 update.setString(2, user.getBio());
                 update.setString(3, user.getImage());
@@ -446,6 +449,7 @@ public class UserRepositoryImpl implements UserRepository {
      * @param username
      * @return User if found, null if not found
      */
+    @Override
     public User userExists(String username) {
         User user = null;
         try (PreparedStatement select = this.unitOfWork.prepareStatement("""

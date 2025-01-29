@@ -7,7 +7,6 @@ echo "CURL Testing for Monster Trading Cards Game"
 echo "Syntax: MonsterTradingCards.sh [pause]"
 echo "- pause: optional, if set, then script will pause after each block"
 echo .
-RED='\033[0;31m'
 
 pauseFlag=0
 for arg in "$@"; do

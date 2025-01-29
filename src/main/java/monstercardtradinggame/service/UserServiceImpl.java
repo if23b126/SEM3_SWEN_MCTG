@@ -22,6 +22,11 @@ public class UserServiceImpl extends AbstractService implements UserService {
         encoder = Base64.getEncoder();
     }
 
+    public UserServiceImpl(UserRepository userRepository) {
+        this.userRepository = userRepository;
+        encoder = Base64.getEncoder();
+    }
+
 
     /**
      * Post Request to login an already existing user, @param is the request with a JSON body, containing username and password
@@ -130,7 +135,7 @@ public class UserServiceImpl extends AbstractService implements UserService {
                     throw new RuntimeException(e);
                 }
                 response = new Response(HttpStatus.OK, ContentType.JSON, json);
-            } else if(userRepository.checkIfUserIsAdmin(token)) {
+            } else if(!userRepository.checkIfUserIsAdmin(token) && userRepository.userExists(username[username.length - 1]) != null) {
                 response = new Response(HttpStatus.FORBIDDEN, ContentType.PLAIN_TEXT, "User is no Admin");
             } else {
                 response = new Response(HttpStatus.NOT_FOUND, ContentType.PLAIN_TEXT, "User not found");
@@ -170,7 +175,7 @@ public class UserServiceImpl extends AbstractService implements UserService {
             }
 
         } else {
-            response = new Response(HttpStatus.UNAUTHORIZED);
+            response = new Response(HttpStatus.UNAUTHORIZED, ContentType.PLAIN_TEXT, "Access token is missing or invalid");
         }
 
         return response;

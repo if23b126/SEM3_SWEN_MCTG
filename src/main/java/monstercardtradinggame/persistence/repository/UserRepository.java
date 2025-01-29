@@ -23,4 +23,5 @@ public interface UserRepository {
     Stat getStats(int userID);
     List<Stat> getScoreboard();
     int getOwnerFromCard(String cardID);
+    User userExists(String username);
 }

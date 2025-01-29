@@ -2,11 +2,13 @@ package httpserver.server;
 
 import httpserver.http.ContentType;
 import httpserver.http.HttpStatus;
+import lombok.Data;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
+@Data
 public class Response {
     private int status;
     private String message;

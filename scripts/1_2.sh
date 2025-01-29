@@ -7,7 +7,6 @@ echo "CURL Testing for Monster Trading Cards Game"
 echo "Syntax: MonsterTradingCards.sh [pause]"
 echo "- pause: optional, if set, then script will pause after each block"
 echo .
-RED='\033[0;31m'
 
 pauseFlag=0
 for arg in "$@"; do
@@ -20,7 +19,7 @@ done
 if [ $pauseFlag -eq 1 ]; then read -p "Press enter to continue..."; fi
 
 # --------------------------------------------------
-echo -e "${RED}1) Create Users (Registration)"
+echo "1) Create Users (Registration)"
 # Create User
 curl -i -X POST http://localhost:10001/users --header "Content-Type: application/json" -d "{\"Username\":\"kienboec\", \"Password\":\"daniel\"}"
 echo "Should return HTTP 201"
@@ -46,7 +45,7 @@ echo .
 if [ $pauseFlag -eq 1 ]; then read -p "Press enter to continue..."; fi
 
 # --------------------------------------------------
-echo -e "${RED}2) Login Users"
+echo "2) Login Users"
 curl -i -X POST http://localhost:10001/sessions --header "Content-Type: application/json" -d "{\"Username\":\"kienboec\", \"Password\":\"daniel\"}"
 echo "should return HTTP 200 with generated token for the user, here: kienboec-mtcgToken"
 echo .

@@ -1,322 +1,171 @@
 package monstercardtradinggametest.service;
 
-import monstercardtradinggame.model.Stat;
-import monstercardtradinggame.model.Token;
-import monstercardtradinggame.model.User;
-import monstercardtradinggame.persistence.DataAccessException;
+import httpserver.http.ContentType;
+import httpserver.http.HttpStatus;
+import httpserver.server.HeaderMap;
+import httpserver.server.Request;
+import httpserver.server.Response;
 import monstercardtradinggame.persistence.UnitOfWork;
-import monstercardtradinggame.persistence.repository.GameRepositoryImpl;
 import monstercardtradinggame.persistence.repository.UserRepository;
 import monstercardtradinggame.persistence.repository.UserRepositoryImpl;
-import monstercardtradinggametest.persistence.*;
-
-import org.junit.jupiter.api.*;
-import java.util.Base64;
-import java.util.List;
+import monstercardtradinggame.service.UserService;
+import monstercardtradinggame.service.UserServiceImpl;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class UserServiceTest {
-    static UserRepository userRepository;
-    static UserRespositoryTest userRespositoryTest;
-    static Base64.Encoder encoder;
+    static UserService userService;
 
     @BeforeAll
-    static void beforeAll() {
-        encoder = Base64.getEncoder();
-    }
-
-
-    @Test
-    public void createUserTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/register_user.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-        userRespositoryTest = new UserRepositoryTestImpl(unitOfWork);
-
-        String username = "test";
-        String password = encoder.encodeToString("test".getBytes());
-        userRepository.register(username, password);
-
-        User user = userRespositoryTest.getUsers();
-
-        assertEquals("test", user.getUsername());
-        assertEquals(password, user.getPassword());
-        assertEquals(20, user.getCoins());
-        assertFalse(user.isAdmin());
-        assertEquals(0, user.getWins());
-        assertEquals(0, user.getLosses());
-        assertEquals(0, user.getTies());
-        assertEquals(1000, user.getElo());
-    }
-
-    @Test
-    public void testTokenCreation() {
-        String username = "test";
-        Token tokenObj = new Token();
-        String token = tokenObj.generateNewToken(username);
-
-        assertEquals("test-mtcgToken", token);
-    }
-
-    @Test
-    public void loginUserTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/login_user.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-        userRespositoryTest = new UserRepositoryTestImpl(unitOfWork);
-
-        String username = "test";
-        String password = encoder.encodeToString("test".getBytes());
-        userRepository.login(username, password);
-
-        String[] result = userRespositoryTest.getCurrentlyLoggedInUser();
-        assertEquals("test", result[0]);
-        assertEquals("test-mtcgToken", result[1]);
-    }
-
-    //check for user status and get id/username from token/id
-    @Test
-    public void checkIfUserIsLoggedInTrueTest() {
+    public static void setUp() {
         String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/logged_in_user.sql'";
         UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        Boolean loggedIn = userRepository.checkIfUserIsLoggedIn("test-mtcgToken");
-
-        assertTrue(loggedIn);
+        UserRepository userRepository = new UserRepositoryImpl(unitOfWork);
+        userService = new UserServiceImpl(userRepository);
     }
 
     @Test
-    public void checkIfUserIsLoggedInFalseTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/logged_in_user.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        Boolean loggedIn = userRepository.checkIfUserIsLoggedIn("christian-mtcgToken");
-
-        assertFalse(loggedIn);
+    public void loginUserInvalidCredentialsTest() {
+        Request request = new Request();
+        request.setBody("{\"Username\":\"christian\",\"Password\":\"wrong password\"}");
+        Response response = userService.loginUser(request);
+        assertEquals(401, response.getStatus());
+        assertEquals("Invalid username/password provided", response.getContent());
     }
 
     @Test
-    public void getUserIDFromTokenTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/logged_in_user.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        int userID = userRepository.getUserIDFromToken("test-mtcgToken");
-
-        assertEquals(1, userID);
+    public void loginUserValidCredentialsTest() {
+        Request request = new Request();
+        request.setBody("{\"Username\":\"christian\",\"Password\":\"test\"}");
+        Response response = userService.loginUser(request);
+        assertEquals(200, response.getStatus());
+        assertEquals("christian-mtcgToken", response.getContent());
     }
 
     @Test
-    public void checkIfUserIsAdminTrueTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/logged_in_user.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        boolean admin = userRepository.checkIfUserIsAdmin("admin-mtcgToken");
-
-        assertTrue(admin);
+    public void registerUserSuccessfulTest() {
+        Request request = new Request();
+        request.setBody("{\"Username\":\"newUser\",\"Password\":\"test\"}");
+        Response response = userService.registerUser(request);
+        assertEquals(201, response.getStatus());
     }
 
     @Test
-    public void checkIfUserIsAdminFalseTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/logged_in_user.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        boolean admin = userRepository.checkIfUserIsAdmin("test-mtcgToken");
-
-        assertFalse(admin);
+    public void registerUserFailedTest() {
+        Request request = new Request();
+        request.setBody("{\"Username\":\"christian\",\"Password\":\"test\"}");
+        Response response = userService.registerUser(request);
+        assertEquals(409, response.getStatus());
+        assertEquals("User already exists", response.getContent());
     }
 
     @Test
-    public void getUsernameFromTokenTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/logged_in_user.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        String username = userRepository.getUsernameFromToken("test-mtcgToken");
-
-        assertEquals("test", username);
+    public void getUserInfoAsAdminTest() {
+        Request request = new Request();
+        request.setPathname("/users/test");
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer admin-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = userService.getUserInfo(request);
+        assertEquals(200, response.getStatus());
+        assertEquals("{\"Name\":null,\"Bio\":null,\"Image\":null}", response.getContent());
     }
 
     @Test
-    public void getUserIDFromUsernameTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/logged_in_user.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        int userID = userRepository.getIDFromUsername("test");
-
-        assertEquals(1, userID);
+    public void getUserInfoAsUserTest() {
+        Request request = new Request();
+        request.setPathname("/users/test");
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = userService.getUserInfo(request);
+        assertEquals(200, response.getStatus());
+        assertEquals("{\"Name\":null,\"Bio\":null,\"Image\":null}", response.getContent());
     }
 
     @Test
-    public void getUsernameFromIDTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/logged_in_user.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        String username = userRepository.getUsernameFromID(1);
-
-        assertEquals("test", username);
+    public void getUserInfoAsWrongUserTest() {
+        Request request = new Request();
+        request.setPathname("/users/christian");
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = userService.getUserInfo(request);
+        assertEquals(403, response.getStatus());
+        assertEquals("User is no Admin", response.getContent());
     }
 
     @Test
-    public void getUserStatsTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/get_user_stats.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        Stat stats = userRepository.getStats(1);
-
-        assertEquals("testName1", stats.getName());
-        assertEquals(5, stats.getWins());
-        assertEquals(10, stats.getLosses());
-        assertEquals(3, stats.getTies());
-        assertEquals(897, stats.getElo());
-    }
-
-    // the following tests are for elo calculation
-    @Test
-    public void updateUserStatsForUserOneWinningTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/update_user_stats.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        userRepository.updateStats(1, 2, 1);
-        Stat test1 = userRepository.getStats(1);
-        Stat test2 = userRepository.getStats(2);
-
-        //assert everything right for test1
-        assertEquals("test1", test1.getName());
-        assertEquals(1, test1.getWins());
-        assertEquals(0, test1.getLosses());
-        assertEquals(0, test1.getTies());
-        assertEquals(1006, test1.getElo());
-
-        //assert everything right for test2
-        assertEquals("test2", test2.getName());
-        assertEquals(0, test2.getWins());
-        assertEquals(1, test2.getLosses());
-        assertEquals(0, test2.getTies());
-        assertEquals(994, test2.getElo());
+    public void getUserInfoForNonexistingUserTest() {
+        Request request = new Request();
+        request.setPathname("/users/nonExistingUser");
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = userService.getUserInfo(request);
+        assertEquals(404, response.getStatus());
+        assertEquals("User not found", response.getContent());
     }
 
     @Test
-    public void updateUserStatsForUserTwoWinningTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/update_user_stats.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        userRepository.updateStats(1, 2, 0);
-        Stat test1 = userRepository.getStats(1);
-        Stat test2 = userRepository.getStats(2);
-
-        //assert everything right for test1
-        assertEquals("test1", test1.getName());
-        assertEquals(0, test1.getWins());
-        assertEquals(1, test1.getLosses());
-        assertEquals(0, test1.getTies());
-        assertEquals(994, test1.getElo());
-
-        //assert everything right for test2
-        assertEquals("test2", test2.getName());
-        assertEquals(1, test2.getWins());
-        assertEquals(0, test2.getLosses());
-        assertEquals(0, test2.getTies());
-        assertEquals(1006, test2.getElo());
+    public void getUserInfoMissingTokenTest() {
+        Request request = new Request();
+        request.setPathname("/users/test");
+        HeaderMap headerMap = new HeaderMap();
+        request.setHeaderMap(headerMap);
+        Response response = userService.getUserInfo(request);
+        assertEquals(401, response.getStatus());
+        assertEquals("Access token is missing or invalid", response.getContent());
     }
 
     @Test
-    public void updateUserStatsForTieTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/update_user_stats.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        userRepository.updateStats(1, 2, 2);
-        Stat test1 = userRepository.getStats(1);
-        Stat test2 = userRepository.getStats(2);
-
-        //assert everything right for test1
-        assertEquals("test1", test1.getName());
-        assertEquals(0, test1.getWins());
-        assertEquals(0, test1.getLosses());
-        assertEquals(1, test1.getTies());
-        assertEquals(1000, test1.getElo());
-
-        //assert everything right for test2
-        assertEquals("test2", test2.getName());
-        assertEquals(0, test2.getWins());
-        assertEquals(0, test2.getLosses());
-        assertEquals(1, test2.getTies());
-        assertEquals(1000, test2.getElo());
+    public void setUserInfoSuccessTest() {
+        Request request = new Request();
+        request.setPathname("/users/test");
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setBody("{\"Name\":\"test\",\"Bio\":\"me playin...\",\"Image\":\":-)\"}");
+        Response response = userService.setUserInfo(request);
+        assertEquals(200, response.getStatus());
     }
 
     @Test
-    public void getUserDataTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/get_user_stats.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        User.UserInfo userInfo = userRepository.getUserData(1);
-
-        assertEquals("testName1", userInfo.getName());
-        assertEquals("me playin", userInfo.getBio());
-        assertEquals(":-)", userInfo.getImage());
+    public void setUserInfoInvalidBodyTest() {
+        Request request = new Request();
+        request.setPathname("/users/test");
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setBody("{\"Name\":\"test\",\"Image\":\":-)\"}");
+        Response response = userService.setUserInfo(request);
+        assertEquals(409, response.getStatus());
     }
 
     @Test
-    public void getScoreboardTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/get_user_stats.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        List<Stat> stats = userRepository.getScoreboard();
-
-        assertEquals("testName2", stats.get(0).getName());
-        assertEquals(30, stats.get(0).getWins());
-        assertEquals(5, stats.get(0).getLosses());
-        assertEquals(1, stats.get(0).getTies());
-        assertEquals(1900, stats.get(0).getElo());
-
-        assertEquals("testName1", stats.get(1).getName());
-        assertEquals(5, stats.get(1).getWins());
-        assertEquals(10, stats.get(1).getLosses());
-        assertEquals(3, stats.get(1).getTies());
-        assertEquals(897, stats.get(1).getElo());
+    public void setUserInfoMissingTokenTest() {
+        Request request = new Request();
+        request.setPathname("/users/test");
+        HeaderMap headerMap = new HeaderMap();
+        request.setHeaderMap(headerMap);
+        request.setBody("{\"Name\":\"test\",\"Bio\":\"me playin...\",\"Image\":\":-)\"}");
+        Response response = userService.setUserInfo(request);
+        assertEquals(401, response.getStatus());
+        assertEquals("Access token is missing or invalid", response.getContent());;
     }
 
     @Test
-    public void updateUserDataTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:userPersistence/get_user_stats.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        User.UserInfo userInfo = User.UserInfo.builder()
-                .name("newTestName")
-                .bio("I am the destroyer")
-                .image("xD")
-                .build();
-
-        userRepository.updateUserData(userInfo, 1);
-        User.UserInfo test1 = userRepository.getUserData(1);
-
-        assertEquals("newTestName", test1.getName());
-        assertEquals("I am the destroyer", test1.getBio());
-        assertEquals("xD", test1.getImage());
-    }
-
-    @Test
-    public void getOwnerFromCardTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:gamePersistence/all_without_trade_battle.sql'";
-        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        int userID = userRepository.getOwnerFromCard("f3fad0f2-a1af-45df-b80d-2e48825773d9");
-
-        assertEquals(2, userID);
+    public void setUserInfoTokenUserNotMatchingTest() {
+        Request request = new Request();
+        request.setPathname("/users/christian");
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setBody("{\"Name\":\"test\",\"Bio\":\"me playin...\",\"Image\":\":-)\"}");
+        Response response = userService.setUserInfo(request);
+        assertEquals(403, response.getStatus());
+        assertEquals("The Token and the User don't match", response.getContent());;
     }
 }

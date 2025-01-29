@@ -1,6 +1,7 @@
 package monstercardtradinggame.model;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @Builder
@@ -9,16 +10,22 @@ import lombok.*;
 @NoArgsConstructor
 public class Card {
     @JsonAlias({"Id"})
+    @JsonProperty("Id")
     private String id;
     @JsonAlias({"Name"})
+    @JsonProperty("Name")
     private String name;
     @JsonAlias({"Damage"})
+    @JsonProperty("Damage")
     private int damage;
     @JsonAlias({"Specialty"})
+    @JsonProperty("Specialty")
     private String specialty;
     @JsonAlias({"Type"})
+    @JsonProperty("Type")
     private String type;
     @JsonAlias({"OwnedBy"})
+    @JsonProperty("OwnedBy")
     private int ownedBy;
 
     @Override

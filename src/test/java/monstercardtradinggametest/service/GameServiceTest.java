@@ -1,279 +1,514 @@
 package monstercardtradinggametest.service;
 
-import monstercardtradinggame.model.Card;
-import monstercardtradinggame.model.Trading;
-import monstercardtradinggame.model.User;
+import httpserver.server.HeaderMap;
+import httpserver.server.Request;
+import httpserver.server.Response;
 import monstercardtradinggame.persistence.UnitOfWork;
 import monstercardtradinggame.persistence.repository.GameRepository;
 import monstercardtradinggame.persistence.repository.GameRepositoryImpl;
 import monstercardtradinggame.persistence.repository.UserRepository;
 import monstercardtradinggame.persistence.repository.UserRepositoryImpl;
-import monstercardtradinggametest.persistence.GameRepositoryTest;
-import monstercardtradinggametest.persistence.GameRepositoryTestImpl;
-import monstercardtradinggametest.persistence.UserRepositoryTestImpl;
-import monstercardtradinggametest.persistence.UserRespositoryTest;
+import monstercardtradinggame.service.GameService;
+import monstercardtradinggame.service.GameServiceImpl;
+import monstercardtradinggame.service.UserServiceImpl;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class GameServiceTest {
-    static GameRepository gameRepository;
-    static UserRepository userRepository;
-    static GameRepositoryTest gameRepositoryTest;
-    static UserRespositoryTest userRespositoryTest;
-    static UnitOfWork unitOfWork;
-
+    static GameService gameService;
     @BeforeEach
     public void setUp() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:gamePersistence/all_without_trade_battle.sql'";
-        unitOfWork = new UnitOfWork(jdbcUrl);
-        gameRepository = new GameRepositoryImpl(unitOfWork);
+        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:gamePersistence/game_service.sql'";
+        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
+        GameRepository gameRepository = new GameRepositoryImpl(unitOfWork);
+        UserRepository userRepository = new UserRepositoryImpl(unitOfWork);
+        gameService = new GameServiceImpl(gameRepository, userRepository);
     }
 
     @Test
-    public void createPackageTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:gamePersistence/create_package.sql'";
-        unitOfWork = new UnitOfWork(jdbcUrl);
-        gameRepository = new GameRepositoryImpl(unitOfWork);
-        gameRepositoryTest = new GameRepositoryTestImpl(unitOfWork);
-
-
-        List<Card> cards = new ArrayList<>();
-
-        cards.add(Card.builder()
-                .id("644808c2-f87a-4600-b313-122b02322fd5")
-                .name("WaterGoblin")
-                .damage(9)
-                .build());
-        cards.add(Card.builder()
-                .id("91a6471b-1426-43f6-ad65-6fc473e16f9f")
-                .name("WaterSpell")
-                .damage(21)
-                .build());
-        cards.add(Card.builder()
-                .id("dcd93250-25a7-4dca-85da-cad2789f7198")
-                .name("FireSpell")
-                .damage(23)
-                .build());
-        cards.add(Card.builder()
-                .id("4a2757d6-b1c3-47ac-b9a3-91deab093531")
-                .name("Dragon")
-                .damage(55)
-                .build());
-        cards.add(Card.builder()
-                .id("4ec8b269-0dfa-4f97-809a-2c63fe2a0025")
-                .name("Ork")
-                .damage(56)
-                .build());
-
-        gameRepository.createPackage(cards, 1);
-
-        int[] packages = gameRepositoryTest.getPackages();
-        List<Card> outCards = gameRepositoryTest.getCards();
-        List<String[]> cardsInPackages = gameRepositoryTest.getCardsInPackages();
-
-        assertEquals(1, packages[0]);
-        assertEquals(1, packages[1]);
-        assertEquals(0, packages[2]);
-
-        assertEquals(cards.get(0).getId(), outCards.get(0).getId());
-        assertEquals(cards.get(0).getName(), outCards.get(0).getName());
-        assertEquals(cards.get(0).getDamage(), outCards.get(0).getDamage());
-        assertEquals("water", outCards.get(0).getSpecialty());
-        assertEquals("monster", outCards.get(0).getType());
-        assertEquals(0, outCards.get(0).getOwnedBy());
-
-        assertEquals(cards.get(1).getId(), outCards.get(1).getId());
-        assertEquals(cards.get(1).getName(), outCards.get(1).getName());
-        assertEquals(cards.get(1).getDamage(), outCards.get(1).getDamage());
-        assertEquals("water", outCards.get(1).getSpecialty());
-        assertEquals("spell", outCards.get(1).getType());
-        assertEquals(0, outCards.get(1).getOwnedBy());
-
-        assertEquals(cards.get(2).getId(), outCards.get(2).getId());
-        assertEquals(cards.get(2).getName(), outCards.get(2).getName());
-        assertEquals(cards.get(2).getDamage(), outCards.get(2).getDamage());
-        assertEquals("fire", outCards.get(2).getSpecialty());
-        assertEquals("spell", outCards.get(2).getType());
-        assertEquals(0, outCards.get(2).getOwnedBy());
-
-        assertEquals(cards.get(3).getId(), outCards.get(3).getId());
-        assertEquals(cards.get(3).getName(), outCards.get(3).getName());
-        assertEquals(cards.get(3).getDamage(), outCards.get(3).getDamage());
-        assertEquals("fire", outCards.get(3).getSpecialty());
-        assertEquals("monster", outCards.get(3).getType());
-        assertEquals(0, outCards.get(3).getOwnedBy());
-
-        assertEquals(cards.get(4).getId(), outCards.get(4).getId());
-        assertEquals(cards.get(4).getName(), outCards.get(4).getName());
-        assertEquals(cards.get(4).getDamage(), outCards.get(4).getDamage());
-        assertEquals("normal", outCards.get(4).getSpecialty());
-        assertEquals("monster", outCards.get(4).getType());
-        assertEquals(0, outCards.get(4).getOwnedBy());
-
-        for(int i = 0; i < cardsInPackages.size(); i++) {
-            assertEquals(cards.get(i).getId(), cardsInPackages.get(i)[0]);
-            assertEquals(String.valueOf(1), cardsInPackages.get(i)[1]);
-        }
+    public void createPackageSuccessTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer admin-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setBody("[{\"Id\":\"845f0dc7-37d0-426e-994e-43fc3ac83c08\", \"Name\":\"WaterGoblin\", \"Damage\": 10.0}, {\"Id\":\"99f8f8dc-e25e-4a95-aa2c-782823f36e2a\", \"Name\":\"Dragon\", \"Damage\": 50.0}, {\"Id\":\"e85e3976-7c86-4d06-9a80-641c2019a79f\", \"Name\":\"WaterSpell\", \"Damage\": 20.0}, {\"Id\":\"1cb6ab86-bdb2-47e5-b6e4-68c5ab389334\", \"Name\":\"Ork\", \"Damage\": 45.0}, {\"Id\":\"dfdd758f-649c-40f9-ba3a-8657f4b3439f\", \"Name\":\"FireSpell\",    \"Damage\": 25.0}]");
+        Response response = gameService.createPackage(request);
+        assertEquals(201, response.getStatus());
     }
 
     @Test
-    public void buyPackageTest() {
-        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:gamePersistence/buy_package.sql'";
-        unitOfWork = new UnitOfWork(jdbcUrl);
-        gameRepository = new GameRepositoryImpl(unitOfWork);
-        gameRepositoryTest = new GameRepositoryTestImpl(unitOfWork);
-        userRespositoryTest = new UserRepositoryTestImpl(unitOfWork);
-
-        gameRepository.buyPackage(2);
-
-        User user = userRespositoryTest.getUserFromID(2);
-        int[] packages = gameRepositoryTest.getPackages();
-        List<Card> cards = gameRepositoryTest.getCards();
-
-        assertEquals(15, user.getCoins());
-
-        assertEquals(1, packages[2]);
-
-        for(Card card : cards) {
-            assertEquals(2, card.getOwnedBy());
-        }
+    public void createPackageCardAlreadyExistsTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer admin-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setBody("[{\"Id\":\"951e886a-0fbf-425d-8df5-af2ee4830d85\", \"Name\":\"Ork\", \"Damage\": 55.0}, {\"Id\":\"99f8f8dc-e25e-4a95-aa2c-782823f36e2a\", \"Name\":\"Dragon\", \"Damage\": 50.0}, {\"Id\":\"e85e3976-7c86-4d06-9a80-641c2019a79f\", \"Name\":\"WaterSpell\", \"Damage\": 20.0}, {\"Id\":\"1cb6ab86-bdb2-47e5-b6e4-68c5ab389334\", \"Name\":\"Ork\", \"Damage\": 45.0}, {\"Id\":\"dfdd758f-649c-40f9-ba3a-8657f4b3439f\", \"Name\":\"FireSpell\",    \"Damage\": 25.0}]");
+        Response response = gameService.createPackage(request);
+        assertEquals(409, response.getStatus());
+        assertEquals("At least one card in the packages already exists", response.getContent());
     }
 
     @Test
-    public void getCardsTest() {
-        Collection<Card> cards = gameRepository.getCards(2);
-
-        List<Card> indexed_cards = cards.stream().toList();
-
-        assertEquals("644808c2-f87a-4600-b313-122b02322fd5", indexed_cards.get(0).getId());
-        assertEquals("WaterGoblin", indexed_cards.get(0).getName());
-        assertEquals(9, indexed_cards.get(0).getDamage());
-        assertEquals("water", indexed_cards.get(0).getSpecialty());
-        assertEquals("monster", indexed_cards.get(0).getType());
-        assertEquals(2, indexed_cards.get(0).getOwnedBy());
-
-        assertEquals("f3fad0f2-a1af-45df-b80d-2e48825773d9", indexed_cards.get(1).getId());
-        assertEquals("Ork", indexed_cards.get(1).getName());
-        assertEquals(45, indexed_cards.get(1).getDamage());
-        assertEquals("normal", indexed_cards.get(1).getSpecialty());
-        assertEquals("monster", indexed_cards.get(1).getType());
-        assertEquals(2, indexed_cards.get(1).getOwnedBy());
+    public void createPackageWithoutAdminTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setBody("[{\"Id\":\"845f0dc7-37d0-426e-994e-43fc3ac83c08\", \"Name\":\"WaterGoblin\", \"Damage\": 10.0}, {\"Id\":\"99f8f8dc-e25e-4a95-aa2c-782823f36e2a\", \"Name\":\"Dragon\", \"Damage\": 50.0}, {\"Id\":\"e85e3976-7c86-4d06-9a80-641c2019a79f\", \"Name\":\"WaterSpell\", \"Damage\": 20.0}, {\"Id\":\"1cb6ab86-bdb2-47e5-b6e4-68c5ab389334\", \"Name\":\"Ork\", \"Damage\": 45.0}, {\"Id\":\"dfdd758f-649c-40f9-ba3a-8657f4b3439f\", \"Name\":\"FireSpell\",    \"Damage\": 25.0}]");
+        Response response = gameService.createPackage(request);
+        assertEquals(403, response.getStatus());
+        assertEquals("Provided user is not \"admin\"", response.getContent());
     }
 
     @Test
-    public void getDeckTest() {
-        Collection<Card> cards = gameRepository.getDeck(2);
-        List<Card> indexed_cards = cards.stream().toList();
-
-        assertEquals("644808c2-f87a-4600-b313-122b02322fd5", indexed_cards.get(0).getId());
-        assertEquals("WaterGoblin", indexed_cards.get(0).getName());
-        assertEquals(9, indexed_cards.get(0).getDamage());
-        assertEquals("water", indexed_cards.get(0).getSpecialty());
-        assertEquals("monster", indexed_cards.get(0).getType());
-        assertEquals(2, indexed_cards.get(0).getOwnedBy());
+    public void createPackageNotLoggedInTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer admin2-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setBody("[{\"Id\":\"845f0dc7-37d0-426e-994e-43fc3ac83c08\", \"Name\":\"WaterGoblin\", \"Damage\": 10.0}, {\"Id\":\"99f8f8dc-e25e-4a95-aa2c-782823f36e2a\", \"Name\":\"Dragon\", \"Damage\": 50.0}, {\"Id\":\"e85e3976-7c86-4d06-9a80-641c2019a79f\", \"Name\":\"WaterSpell\", \"Damage\": 20.0}, {\"Id\":\"1cb6ab86-bdb2-47e5-b6e4-68c5ab389334\", \"Name\":\"Ork\", \"Damage\": 45.0}, {\"Id\":\"dfdd758f-649c-40f9-ba3a-8657f4b3439f\", \"Name\":\"FireSpell\",    \"Damage\": 25.0}]");
+        Response response = gameService.createPackage(request);
+        assertEquals(401, response.getStatus());
+        assertEquals("User is not logged in", response.getContent());
     }
 
     @Test
-    public void createDeckTest() {
-        gameRepository.createDeck(2, new String[] {"f3fad0f2-a1af-45df-b80d-2e48825773d9"});
-        Collection<Card> cards = gameRepository.getDeck(2);
-        List<Card> indexed_cards = cards.stream().toList();
-
-        assertEquals(1, indexed_cards.size());
-        assertEquals("f3fad0f2-a1af-45df-b80d-2e48825773d9", indexed_cards.get(0).getId());
-        assertEquals("Ork", indexed_cards.get(0).getName());
-        assertEquals(45, indexed_cards.get(0).getDamage());
-        assertEquals("normal", indexed_cards.get(0).getSpecialty());
-        assertEquals("monster", indexed_cards.get(0).getType());
-        assertEquals(2, indexed_cards.get(0).getOwnedBy());
+    public void buyPackageSuccessTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = gameService.buyPackage(request);
+        assertEquals(200, response.getStatus());
+        assertEquals("A package has been successfully bought", response.getContent());
     }
 
     @Test
-    public void battleTest() {
-        gameRepository.battle(2);
-        List<String> log = gameRepository.battle(3);
-
-        assertEquals("You Won!", log.get(0));
-        assertEquals("Player test2 used his Redemption-card and won round 1.", log.get(1));
-        assertEquals("Player test used his Redemption-card and won round 2.", log.get(2));
-        assertEquals("Player test2 won round 3 with Ork (Damage: 55) against WaterGoblin(Damage: 9).", log.get(3));
+    public void buyPackageNotEnoughMoneyTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer noMoney-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = gameService.buyPackage(request);
+        assertEquals(403, response.getStatus());
+        assertEquals("Not enough money for buying a card package", response.getContent());
     }
 
     @Test
-    public void getTradings() {
-        List<Trading> tradings = gameRepository.getTradings();
+    public void buyPackageNoPackageAvailableTest() {
+        String jdbcUrl = "jdbc:h2:~/mctg;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=RUNSCRIPT FROM 'classpath:gamePersistence/no_package_available.sql'";
+        UnitOfWork unitOfWork = new UnitOfWork(jdbcUrl);
+        GameRepository gameRepository = new GameRepositoryImpl(unitOfWork);
+        UserRepository userRepository = new UserRepositoryImpl(unitOfWork);
+        gameService = new GameServiceImpl(gameRepository, userRepository);
 
-        assertEquals("6cd85277-4590d-49d4-b0cf-ba0a9f1faad0", tradings.get(0).getId());
-        assertEquals("f3fad0f2-a1af-45df-b80d-2e48825773d9", tradings.get(0).getCardToTrade());
-        assertEquals("spell", tradings.get(0).getType());
-        assertEquals(50, tradings.get(0).getMinimumDamage());
+
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = gameService.buyPackage(request);
+        assertEquals(404, response.getStatus());
+        assertEquals("No card package available for buying", response.getContent());
     }
 
     @Test
-    public void createTradingTest() {
-        Trading tradeOffer = Trading.builder()
-                .id("6cd85277-4590d-49d4-b0cf-ba0a921faad0")
-                .cardToTrade("a6fde738-c65a-4b10-b400-6fef0fdb28ba")
-                .type("monster")
-                .minimumDamage(60)
-                .build();
-
-        gameRepository.createTrading(tradeOffer);
-
-        List<Trading> tradings = gameRepository.getTradings();
-
-        assertEquals(tradeOffer.getId(), tradings.get(1).getId());
-        assertEquals(tradeOffer.getCardToTrade(), tradings.get(1).getCardToTrade());
-        assertEquals(tradeOffer.getType(), tradings.get(1).getType());
-        assertEquals(tradeOffer.getMinimumDamage(), tradings.get(1).getMinimumDamage());
+    public void buyPackageMissingTokenTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        request.setHeaderMap(headerMap);
+        Response response = gameService.buyPackage(request);
+        assertEquals(401, response.getStatus());
+        assertEquals("Access token is missing or invalid", response.getContent());
     }
 
     @Test
-    public void acceptTradingTest() {
-        userRepository = new UserRepositoryImpl(unitOfWork);
-
-        gameRepository.acceptTrading(gameRepository.getCardFromTradingID("6cd85277-4590d-49d4-b0cf-ba0a9f1faad0"), "a6fde738-c65a-4b10-b400-6fef0fdb28ba", 2, 3);
-
-        int userIDOfferAfterTrade = userRepository.getOwnerFromCard("f3fad0f2-a1af-45df-b80d-2e48825773d9");
-        int userIDAcceptanceAfterTrade = userRepository.getOwnerFromCard("a6fde738-c65a-4b10-b400-6fef0fdb28ba");
-
-        assertEquals(3, userIDOfferAfterTrade);
-        assertEquals(2, userIDAcceptanceAfterTrade);
-    }
-    
-    @Test
-    public void deleteTradingTest() {
-        gameRepository.deleteTrading("f3fad0f2-a1af-45df-b80d-2e48825773d9");
-
-        List<Trading> tradings = gameRepository.getTradings();
-
-        assertTrue(tradings.isEmpty());
+    public void getCardsSuccessTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = gameService.getCards(request);
+        assertEquals(200, response.getStatus());
+        assertEquals("[{\"Id\":\"644808c2-f87a-4600-b313-122b02322fd5\",\"Name\":\"WaterGoblin\",\"Damage\":9,\"Specialty\":\"water\",\"Type\":\"monster\",\"OwnedBy\":2},{\"Id\":\"f3fad0f2-a1af-45df-b80d-2e48825773d9\",\"Name\":\"Ork\",\"Damage\":45,\"Specialty\":\"normal\",\"Type\":\"monster\",\"OwnedBy\":2},{\"Id\":\"4ec8b269-0dfa-4f97-809a-2c63fe2a0025\",\"Name\":\"Ork\",\"Damage\":55,\"Specialty\":\"normal\",\"Type\":\"monster\",\"OwnedBy\":2},{\"Id\":\"88221cfe-1f84-41b9-8152-8e36c6a354de\",\"Name\":\"WaterSpell\",\"Damage\":22,\"Specialty\":\"water\",\"Type\":\"spell\",\"OwnedBy\":2}]", response.getContent());
     }
 
     @Test
-    public void getCardFromTradingIDTest() {
-        String cardID = gameRepository.getCardFromTradingID("6cd85277-4590d-49d4-b0cf-ba0a9f1faad0");
-
-        assertEquals("f3fad0f2-a1af-45df-b80d-2e48825773d9", cardID);
+    public void getCardsNoCardsForUserTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer admin-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = gameService.getCards(request);
+        assertEquals(409, response.getStatus());
+        assertEquals("The request was fine, but the user doesn't have any cards", response.getContent());
     }
 
     @Test
-    public void checkIfTradingExistsTrueTest() {
-        boolean exists = gameRepository.checkIfTradingExists("f3fad0f2-a1af-45df-b80d-2e48825773d9");
-
-        assertTrue(exists);
+    public void getCardsMissingTokenTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        request.setHeaderMap(headerMap);
+        Response response = gameService.getCards(request);
+        assertEquals(401, response.getStatus());
+        assertEquals("Access token is missing or invalid", response.getContent());
     }
 
     @Test
-    public void checkIfTradingExistsFalseTest() {
-        boolean exists = gameRepository.checkIfTradingExists("a6fde738-c65a-4b10-b400-6fef0fdb28ba");
+    public void getDeckJsonSuccessTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = gameService.getDeck(request, false);
+        assertEquals(200, response.getStatus());
+        assertEquals("[{\"Id\":\"644808c2-f87a-4600-b313-122b02322fd5\",\"Name\":\"WaterGoblin\",\"Damage\":9,\"Specialty\":\"water\",\"Type\":\"monster\",\"OwnedBy\":2}]", response.getContent());
+    }
 
-        assertFalse(exists);
+    @Test
+    public void getDeckPlainSuccessTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = gameService.getDeck(request, true);
+        assertEquals(200, response.getStatus());
+        assertEquals("Card 1\n" +
+                "\tID: 644808c2-f87a-4600-b313-122b02322fd5, \n" +
+                "\tName: WaterGoblin, \n" +
+                "\tDamage: 9, \n" +
+                "\tType: monster\n", response.getContent());
+    }
+
+    @Test
+    public void getDeckNoConfiguredDeckTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer admin-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = gameService.getDeck(request, false);
+        assertEquals(409, response.getStatus());
+        assertEquals("The request was fine, but the deck doesn't have any cards", response.getContent());
+    }
+
+    @Test
+    public void getDeckMissingTokenTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        request.setHeaderMap(headerMap);
+        Response response = gameService.getDeck(request, false);
+        assertEquals(401, response.getStatus());
+        assertEquals("Access token is missing or invalid", response.getContent());
+    }
+
+    @Test
+    public void putDeckSuccessTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setBody("[\"88221cfe-1f84-41b9-8152-8e36c6a354de\", \"4ec8b269-0dfa-4f97-809a-2c63fe2a0025\", \"f3fad0f2-a1af-45df-b80d-2e48825773d9\", \"644808c2-f87a-4600-b313-122b02322fd5\"]");
+        Response response = gameService.putDeck(request);
+        assertEquals(201, response.getStatus());
+        assertEquals("The deck has been successfully configured", response.getContent());
+    }
+
+    @Test
+    public void putDeckNotEnoughCardsTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setBody("[\"4ec8b269-0dfa-4f97-809a-2c63fe2a0025\", \"f3fad0f2-a1af-45df-b80d-2e48825773d9\", \"644808c2-f87a-4600-b313-122b02322fd5\"]");
+        Response response = gameService.putDeck(request);
+        assertEquals(400, response.getStatus());
+        assertEquals("The provided deck did not include the required amount of cards", response.getContent());
+    }
+
+    @Test
+    public void putDeckCardNotBelongingToUserTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setBody("[\"951e886a-0fbf-425d-8df5-af2ee4830d85\", \"4ec8b269-0dfa-4f97-809a-2c63fe2a0025\", \"f3fad0f2-a1af-45df-b80d-2e48825773d9\", \"644808c2-f87a-4600-b313-122b02322fd5\"]");
+        Response response = gameService.putDeck(request);
+        assertEquals(409, response.getStatus());
+        assertEquals("At least one of the provided cards does not belong to the user or is not available.", response.getContent());
+    }
+
+    @Test
+    public void putDeckMissingTokenTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        request.setHeaderMap(headerMap);
+        request.setBody("[\"88221cfe-1f84-41b9-8152-8e36c6a354de\", \"4ec8b269-0dfa-4f97-809a-2c63fe2a0025\", \"f3fad0f2-a1af-45df-b80d-2e48825773d9\", \"644808c2-f87a-4600-b313-122b02322fd5\"]");
+        Response response = gameService.putDeck(request);
+        assertEquals(401, response.getStatus());
+        assertEquals("Access token is missing or invalid", response.getContent());
+    }
+
+    @Test
+    public void getStatsSuccessTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = gameService.getStats(request);
+        assertEquals(200, response.getStatus());
+        assertEquals("{\"Name\":null,\"Elo\":1000,\"Wins\":0,\"Losses\":0,\"Ties\":0}", response.getContent());
+    }
+
+    @Test
+    public void getStatsMissingTokenTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        request.setHeaderMap(headerMap);
+        Response response = gameService.getStats(request);
+        assertEquals(401, response.getStatus());
+        assertEquals("Access token is missing or invalid", response.getContent());
+    }
+
+    @Test
+    public void getScoreboardSuccessTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = gameService.getScoreboards(request);
+        assertEquals(200, response.getStatus());
+        assertEquals("[{\"Name\":null,\"Elo\":1000,\"Wins\":0,\"Losses\":0,\"Ties\":0},{\"Name\":null,\"Elo\":1000,\"Wins\":0,\"Losses\":0,\"Ties\":0},{\"Name\":null,\"Elo\":1000,\"Wins\":0,\"Losses\":0,\"Ties\":0},{\"Name\":null,\"Elo\":1000,\"Wins\":0,\"Losses\":0,\"Ties\":0},{\"Name\":null,\"Elo\":1000,\"Wins\":0,\"Losses\":0,\"Ties\":0}]", response.getContent());
+    }
+
+    @Test
+    public void getScoreboardMissingTokenTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        request.setHeaderMap(headerMap);
+        Response response = gameService.getScoreboards(request);
+        assertEquals(401, response.getStatus());
+        assertEquals("Access token is missing or invalid", response.getContent());
+    }
+
+    @Test
+    public void battleSuccessTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = gameService.battle(request);
+        assertEquals(200, response.getStatus());
+        assertEquals("Waiting for Opponent!", response.getContent());
+
+        request = new Request();
+        headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer christian-mtcgToken");
+        request.setHeaderMap(headerMap);
+        response = gameService.battle(request);
+        assertEquals(200, response.getStatus());
+        assertEquals("You Won!\nPlayer christian used his Redemption-card and won round 1.\nPlayer test used his Redemption-card and won round 2.\nPlayer christian won round 3 with Ork (Damage: 55) against WaterGoblin(Damage: 9).\n", response.getContent());
+    }
+
+    @Test
+    public void battleMissingTokenTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        request.setHeaderMap(headerMap);
+        Response response = gameService.battle(request);
+        assertEquals(401, response.getStatus());
+        assertEquals("Access token is missing or invalid", response.getContent());
+    }
+
+    @Test
+    public void getTradingSuccessTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        Response response = gameService.getTradings(request);
+        assertEquals(200, response.getStatus());
+        assertEquals("[{\"Id\":\"6cd85277-4590d-49d4-b0cf-ba0a9f1faad0\",\"CardToTrade\":\"f3fad0f2-a1af-45df-b80d-2e48825773d9\",\"Type\":\"spell\",\"MinimumDamage\":50}]", response.getContent());
+    }
+
+    @Test
+    public void getTradingMissingTokenTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        request.setHeaderMap(headerMap);
+        Response response = gameService.getTradings(request);
+        assertEquals(401, response.getStatus());
+        assertEquals("Access token is missing or invalid", response.getContent());
+    }
+
+    @Test
+    public void createTradingSuccessTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setBody("{\"Id\":\"6cd85277-4590-4fd4-b0cf-ba0a921faad0\",\"CardToTrade\":\"4ec8b269-0dfa-4f97-809a-2c63fe2a0025\",\"Type\":\"monster\",\"MinimumDamage\":30}");
+        Response response = gameService.createTrading(request);
+        assertEquals(201, response.getStatus());
+        assertEquals("Trading deal successfully created", response.getContent());
+    }
+
+    @Test
+    public void createTradingAlreadyExistingIDTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setBody("{\"Id\":\"6cd85277-4590d-49d4-b0cf-ba0a9f1faad0\",\"CardToTrade\":\"4ec8b269-0dfa-4f97-809a-2c63fe2a0025\",\"Type\":\"monster\",\"MinimumDamage\":30}");
+        Response response = gameService.createTrading(request);
+        assertEquals(409, response.getStatus());
+        assertEquals("A deal with this deal ID already exists.", response.getContent());
+    }
+
+    @Test
+    public void createTradingCardLockedInDeckTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setBody("{\"Id\":\"6cd85277-4590-4fd4-b0cf-ba0a921faad0\",\"CardToTrade\":\"644808c2-f87a-4600-b313-122b02322fd5\",\"Type\":\"monster\",\"MinimumDamage\":30}");
+        Response response = gameService.createTrading(request);
+        assertEquals(400, response.getStatus());
+        assertEquals("The deal contains a card that is locked in a deck.", response.getContent());
+    }
+
+    @Test
+    public void createTradingNotCardOwnerTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setBody("{\"Id\":\"6cd85277-4590-4fd4-b0cf-ba0a921faad0\",\"CardToTrade\":\"951e886a-0fbf-425d-8df5-af2ee4830d85\",\"Type\":\"monster\",\"MinimumDamage\":30}");
+        Response response = gameService.createTrading(request);
+        assertEquals(403, response.getStatus());
+        assertEquals("The deal contains a card that is not owned by the user.", response.getContent());
+    }
+
+    @Test
+    public void createTradingMissingTokenTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        request.setHeaderMap(headerMap);
+        request.setBody("{\"Id\":\"6cd85277-4590-4fd4-b0cf-ba0a921faad0\",\"CardToTrade\":\"4ec8b269-0dfa-4f97-809a-2c63fe2a0025\",\"Type\":\"monster\",\"MinimumDamage\":30}");
+        Response response = gameService.createTrading(request);
+        assertEquals(401, response.getStatus());
+        assertEquals("Access token is missing or invalid", response.getContent());
+    }
+
+    @Test
+    public void acceptTradingSuccessTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer christian-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setPathname("/tradings/6cd85277-4590d-49d4-b0cf-ba0a9f1faad0");
+        request.setBody("\"a6fde738-c65a-4b10-b400-6fef0fdb28ba\"");
+        Response response = gameService.acceptTrading(request);
+        assertEquals(200, response.getStatus());
+        assertEquals("Trading deal successfully executed.", response.getContent());
+    }
+
+    @Test
+    public void acceptTradingOfferdCardDoesNotBelongToUserTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer christian-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setPathname("/tradings/6cd85277-4590d-49d4-b0cf-ba0a9f1faad0");
+        request.setBody("\"88221cfe-1f84-41b9-8152-8e36c6a354de\"");
+        Response response = gameService.acceptTrading(request);
+        assertEquals(403, response.getStatus());
+        assertEquals("The offered card is not owned by the user.", response.getContent());
+    }
+
+    @Test
+    public void acceptTradingDealIDNotFoundTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer christian-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setPathname("/tradings/6cd85277-4590-4fd4-b0cf-ba0a921faad0");
+        request.setBody("\"a6fde738-c65a-4b10-b400-6fef0fdb28ba\"");
+        Response response = gameService.acceptTrading(request);
+        assertEquals(404, response.getStatus());
+        assertEquals("The provided deal ID was not found.", response.getContent());
+    }
+
+    @Test
+    public void acceptTradingCardNotMeetingRequirementsTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer christian-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setPathname("/tradings/6cd85277-4590d-49d4-b0cf-ba0a9f1faad0");
+        request.setBody("\"a6fde738-c65a-4t10-b400-6fef0fdb28ba\"");
+        Response response = gameService.acceptTrading(request);
+        assertEquals(500, response.getStatus());
+        assertEquals("Something went wrong", response.getContent());
+    }
+
+    @Test
+    public void acceptTradingMissingTokenTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        request.setHeaderMap(headerMap);
+        request.setPathname("/tradings/6cd85277-4590d-49d4-b0cf-ba0a9f1faad0");
+        request.setBody("\"a6fde738-c65a-4b10-b400-6fef0fdb28ba\"");
+        Response response = gameService.acceptTrading(request);
+        assertEquals(401, response.getStatus());
+        assertEquals("Access token is missing or invalid", response.getContent());
+    }
+
+    @Test
+    public void deleteTradingSuccessTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setPathname("/tradings/6cd85277-4590d-49d4-b0cf-ba0a9f1faad0");
+        Response response = gameService.deleteTrading(request);
+        assertEquals(200, response.getStatus());
+        assertEquals("Trading deal successfully deleted.", response.getContent());
+    }
+
+    @Test
+    public void deleteTradingNotOwnerOfTradeTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer christian-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setPathname("/tradings/6cd85277-4590d-49d4-b0cf-ba0a9f1faad0");
+        Response response = gameService.deleteTrading(request);
+        assertEquals(409, response.getStatus());
+        assertEquals("The deal contains a card that is not owned by the user.", response.getContent());
+    }
+
+    @Test
+    public void deleteTradingTradingIDNotFoundTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        headerMap.ingest("Authorization: Bearer test-mtcgToken");
+        request.setHeaderMap(headerMap);
+        request.setPathname("/tradings/6cd85277-4590-4fd4-b0cf-ba0a921faad0");
+        Response response = gameService.deleteTrading(request);
+        assertEquals(404, response.getStatus());
+        assertEquals("The provided deal ID was not found.", response.getContent());
+    }
+
+    @Test
+    public void deleteTradingMissingTokenTest() {
+        Request request = new Request();
+        HeaderMap headerMap = new HeaderMap();
+        request.setHeaderMap(headerMap);
+        Response response = gameService.deleteTrading(request);
+        assertEquals(401, response.getStatus());
+        assertEquals("Access token is missing or invalid", response.getContent());
     }
 }

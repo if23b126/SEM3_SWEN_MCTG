@@ -7,7 +7,6 @@ echo "CURL Testing for Monster Trading Cards Game"
 echo "Syntax: MonsterTradingCards.sh [pause]"
 echo "- pause: optional, if set, then script will pause after each block"
 echo .
-RED='\033[0;31m'
 
 pauseFlag=0
 for arg in "$@"; do
@@ -18,7 +17,7 @@ for arg in "$@"; do
 done
 
 # --------------------------------------------------
-echo -e "${RED}3) create packages (done by admin)"
+echo "3) create packages (done by admin)"
 curl -i -X POST http://localhost:10001/packages --header "Content-Type: application/json" --header "Authorization: Bearer admin-mtcgToken" -d "[{\"Id\":\"845f0dc7-37d0-426e-994e-43fc3ac83c08\", \"Name\":\"WaterGoblin\", \"Damage\": 10.0}, {\"Id\":\"99f8f8dc-e25e-4a95-aa2c-782823f36e2a\", \"Name\":\"Dragon\", \"Damage\": 50.0}, {\"Id\":\"e85e3976-7c86-4d06-9a80-641c2019a79f\", \"Name\":\"WaterSpell\", \"Damage\": 20.0}, {\"Id\":\"1cb6ab86-bdb2-47e5-b6e4-68c5ab389334\", \"Name\":\"Ork\", \"Damage\": 45.0}, {\"Id\":\"dfdd758f-649c-40f9-ba3a-8657f4b3439f\", \"Name\":\"FireSpell\",    \"Damage\": 25.0}]"
 echo "Should return HTTP 201"
 echo .
@@ -40,7 +39,7 @@ echo .
 echo .
 
 # --------------------------------------------------
-echo -e "${RED}4) acquire packages kienboec"
+echo "4) acquire packages kienboec"
 curl -i -X POST http://localhost:10001/transactions/packages --header "Content-Type: application/json" --header "Authorization: Bearer kienboec-mtcgToken" -d ""
 echo "Should return HTTP 201"
 echo .
@@ -62,7 +61,7 @@ echo .
 if [ $pauseFlag -eq 1 ]; then read -p "Press enter to continue..."; fi
 
 # --------------------------------------------------
-echo -e "${RED}5) acquire packages altenhof"
+echo "5) acquire packages altenhof"
 curl -i -X POST http://localhost:10001/transactions/packages --header "Content-Type: application/json" --header "Authorization: Bearer altenhof-mtcgToken" -d ""
 echo "Should return HTTP 201"
 echo .
@@ -78,7 +77,7 @@ echo .
 if [ $pauseFlag -eq 1 ]; then read -p "Press enter to continue..."; fi
 
 # --------------------------------------------------
-echo -e "${RED}6) add new packages"
+echo "6) add new packages"
 curl -i -X POST http://localhost:10001/packages --header "Content-Type: application/json" --header "Authorization: Bearer admin-mtcgToken" -d "[{\"Id\":\"67f9048f-99b8-4ae4-b866-d8008d00c53d\", \"Name\":\"WaterGoblin\", \"Damage\": 10.0}, {\"Id\":\"aa9999a0-734c-49c6-8f4a-651864b14e62\", \"Name\":\"RegularSpell\", \"Damage\": 50.0}, {\"Id\":\"d6e9c720-9b5a-40c7-a6b2-bc34752e3463\", \"Name\":\"Knight\", \"Damage\": 20.0}, {\"Id\":\"02a9c76e-b17d-427f-9240-2dd49b0d3bfd\", \"Name\":\"RegularSpell\", \"Damage\": 45.0}, {\"Id\":\"2508bf5c-20d7-43b4-8c77-bc677decadef\", \"Name\":\"FireElf\", \"Damage\": 25.0}]"
 echo "Should return HTTP 201"
 echo .
@@ -93,7 +92,7 @@ echo .
 if [ $pauseFlag -eq 1 ]; then read -p "Press enter to continue..."; fi
 
 # --------------------------------------------------
-echo -e "${RED}7) acquire newly created packages altenhof"
+echo "7) acquire newly created packages altenhof"
 curl -i -X POST http://localhost:10001/transactions/packages --header "Content-Type: application/json" --header "Authorization: Bearer altenhof-mtcgToken" -d ""
 echo "Should return HTTP 201"
 echo .
@@ -109,7 +108,7 @@ echo .
 if [ $pauseFlag -eq 1 ]; then read -p "Press enter to continue..."; fi
 
 # --------------------------------------------------
-echo -e "${RED}8) show all acquired cards kienboec"
+echo "8) show all acquired cards kienboec"
 curl -i -X GET http://localhost:10001/cards --header "Authorization: Bearer kienboec-mtcgToken"
 echo "Should return HTTP 200 - and a list of all cards"
 echo "should fail (no token):"
@@ -121,7 +120,7 @@ echo .
 if [ $pauseFlag -eq 1 ]; then read -p "Press enter to continue..."; fi
 
 # --------------------------------------------------
-echo -e "${RED}9) show all acquired cards altenhof"
+echo "9) show all acquired cards altenhof"
 curl -i -X GET http://localhost:10001/cards --header "Authorization: Bearer altenhof-mtcgToken"
 echo "Should return HTTP 200 - and a list of all cards"
 echo .
@@ -130,7 +129,7 @@ echo .
 if [ $pauseFlag -eq 1 ]; then read -p "Press enter to continue..."; fi
 
 # --------------------------------------------------
-echo -e "${RED}10) show unconfigured deck"
+echo "10) show unconfigured deck"
 curl -i -X GET http://localhost:10001/deck --header "Authorization: Bearer kienboec-mtcgToken"
 echo "Should return HTTP 200 - and a empty-list"
 echo .

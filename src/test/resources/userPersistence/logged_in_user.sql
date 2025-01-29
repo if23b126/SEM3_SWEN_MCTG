@@ -23,6 +23,9 @@ values ('test', 'dGVzdA==');
 INSERT into public.users (username, password, isadmin)
 values ('admin', 'dGVzdA==', true);
 
+INSERT into public.users (username, password)
+values ('christian', 'dGVzdA==');
+
 
 CREATE TABLE public.currently_logged_in (
     username varchar(200) NULL,

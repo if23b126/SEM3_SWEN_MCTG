@@ -425,14 +425,14 @@ public class GameRepositoryImpl implements GameRepository {
     }
 
     @Override
-    public boolean checkIfTradingExists(String cardID) {
+    public boolean checkIfTradingExists(String tradingID) {
         boolean response = false;
         try(PreparedStatement select = this.unitOfWork.prepareStatement("""
                 SELECT count(*)
                 FROM public.trading
-                WHERE card_id=?
+                WHERE id=?
             """)) {
-            select.setString(1, cardID);
+            select.setString(1, tradingID);
             ResultSet rs = select.executeQuery();
             if(rs.next()) {
                 response = rs.getInt(1) != 0;
@@ -713,7 +713,7 @@ public class GameRepositoryImpl implements GameRepository {
                 initiatorCards.add(opponentCard);
                 gameLog.add("Player " + userRepository.getUsernameFromID(initiator) + " won round " + (i+1) + " with " + initiatorCard.getName() + " (Damage: " + calculateDamage(initiatorCard, opponentCard) + ") against " + opponentCard.getName() + "(Damage: " + calculateDamage(opponentCard, initiatorCard) + ").");
             } else {
-                gameLog.add("Round " + i + " has been a tie.");
+                gameLog.add("Round " + (i + 1) + " has been a tie.");
             }
 
             if(initiatorCards.isEmpty() || opponentCards.isEmpty()) {
@@ -758,6 +758,8 @@ public class GameRepositoryImpl implements GameRepository {
                 result = initiatorCard.getDamage() * 2;
             } else if (initiatorCard.getType().equalsIgnoreCase("water") && opponentCard.getType().equalsIgnoreCase("normal")) {
                 result = initiatorCard.getDamage() / 2;
+            } else {
+                result = initiatorCard.getDamage();
             }
         } else {
             if (initiatorCard.getName().equalsIgnoreCase("watergoblin") && opponentCard.getName().equalsIgnoreCase("dragon")) {

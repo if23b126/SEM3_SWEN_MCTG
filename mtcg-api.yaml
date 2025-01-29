@@ -369,11 +369,11 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
-          description: The deal contains a card that is not owned by the user or locked in the deck.
+          description: The deal contains a card that is not owned by the user.
         '409':
           description: A deal with this deal ID already exists.
         '500':
-          description: Something went wrong
+          description: The deal contains a card that is locked in the deck.
       security:
         - mtcgAuth: []
   /tradings/{tradingdealid}:
@@ -469,9 +469,12 @@ components:
           description: The name of the user (from the user data).
         Elo:
           type: integer
+          example: 1000
         Wins:
           type: integer
         Losses:
+          type: integer
+        Ties:
           type: integer
     Card:
       type: object

@@ -28,6 +28,11 @@ public class GameServiceImpl extends AbstractService implements GameService {
         this.userRepository = new UserRepositoryImpl(UnitOfWork.getInstance());
     }
 
+    public GameServiceImpl(GameRepository gameRepository, UserRepository userRepository) {
+        this.gameRepository = gameRepository;
+        this.userRepository = userRepository;
+    }
+
     @Override
     public Response createPackage(Request request) {
         String token = null;
@@ -172,7 +177,7 @@ public class GameServiceImpl extends AbstractService implements GameService {
                     .split(",");
 
             if(cards.length != 4) {
-                response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "The provided deck did not include the required amount of cards");
+                response = new Response(HttpStatus.BAD_REQUEST, ContentType.PLAIN_TEXT, "The provided deck did not include the required amount of cards");
             }
             else if(gameRepository.createDeck(userRepository.getUserIDFromToken(token), cards)) {
                 response = new Response(HttpStatus.CREATED, ContentType.PLAIN_TEXT, "The deck has been successfully configured");
@@ -309,10 +314,10 @@ public class GameServiceImpl extends AbstractService implements GameService {
                 } else if (gameRepository.createTrading(trading)) {
                     response = new Response(HttpStatus.CREATED, ContentType.PLAIN_TEXT, "Trading deal successfully created");
                 } else {
-                    response = new Response(HttpStatus.INTERNAL_SERVER_ERROR, ContentType.PLAIN_TEXT, "Something went wrong");
+                    response = new Response(HttpStatus.BAD_REQUEST, ContentType.PLAIN_TEXT, "The deal contains a card that is locked in a deck.");
                 }
             } else {
-                response = new Response(HttpStatus.FORBIDDEN, ContentType.PLAIN_TEXT, "The deal contains a card that is not owned by the user or locked in the deck.");
+                response = new Response(HttpStatus.FORBIDDEN, ContentType.PLAIN_TEXT, "The deal contains a card that is not owned by the user.");
             }
 
         } else {
@@ -360,9 +365,10 @@ public class GameServiceImpl extends AbstractService implements GameService {
         if(userRepository.checkIfUserIsLoggedIn(token)) {
             String trading = gameRepository.getCardFromTradingID(request.getPathname().substring(10));
 
-            if (userRepository.getUserIDFromToken(token) != userRepository.getOwnerFromCard(trading)) {
+            if (userRepository.getUserIDFromToken(token) != userRepository.getOwnerFromCard(trading) &&
+                    gameRepository.checkIfTradingExists(request.getPathname().substring(10))) {
                 response = new Response(HttpStatus.CONFLICT, ContentType.PLAIN_TEXT, "The deal contains a card that is not owned by the user.");
-            } else if (!gameRepository.checkIfTradingExists(trading)) {
+            } else if (!gameRepository.checkIfTradingExists(request.getPathname().substring(10))) {
                 response = new Response(HttpStatus.NOT_FOUND, ContentType.PLAIN_TEXT, "The provided deal ID was not found.");
             }else if(gameRepository.deleteTrading(trading)) {
                 response = new Response(HttpStatus.OK, ContentType.PLAIN_TEXT, "Trading deal successfully deleted.");
