@@ -26,13 +26,20 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.cards (
-    id character varying(50) NOT NULL,
+    id character varying(200) NOT NULL,
     name character varying(200),
     damage integer,
     specialty character varying(20),
     owned_by integer,
     type character varying(20)
 );
+
+--
+-- Name: cards cards_pk; Type: CONSTRAINT; Schema: public; Owner: mctg
+--
+
+ALTER TABLE ONLY public.cards
+    ADD CONSTRAINT cards_pk PRIMARY KEY (id);
 
 
 ALTER TABLE public.cards OWNER TO mctg;
@@ -98,6 +105,13 @@ ALTER TABLE public.decks ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     CACHE 1
 );
 
+--
+-- Name: decks decks_pkey; Type: CONSTRAINT; Schema: public; Owner: mctg
+--
+
+ALTER TABLE ONLY public.decks
+    ADD CONSTRAINT decks_pkey PRIMARY KEY (id);
+
 
 --
 -- Name: packages; Type: TABLE; Schema: public; Owner: mctg
@@ -124,6 +138,13 @@ ALTER TABLE public.packages ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     NO MAXVALUE
     CACHE 1
 );
+
+--
+-- Name: packages pacakges_pk; Type: CONSTRAINT; Schema: public; Owner: mctg
+--
+
+ALTER TABLE ONLY public.packages
+    ADD CONSTRAINT pacakges_pk PRIMARY KEY (id);
 
 
 --
@@ -172,6 +193,13 @@ CREATE TABLE public.users (
     ties integer DEFAULT 0,
     elo integer DEFAULT 1000
 );
+
+--
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: mctg
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
 
 ALTER TABLE public.users OWNER TO mctg;
@@ -261,52 +289,6 @@ COPY public.trading (id, card_id, isactive) FROM stdin;
 COPY public.users (id, username, password, image, coins, isadmin, name, bio, wins, losses, ties, elo) FROM stdin;
 \.
 
-
---
--- Name: decks_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mctg
---
-
-SELECT pg_catalog.setval('public.decks_id_seq', 29, true);
-
-
---
--- Name: pacakges_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mctg
---
-
-SELECT pg_catalog.setval('public.pacakges_id_seq', 87, true);
-
-
---
--- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mctg
---
-
-SELECT pg_catalog.setval('public.users_id_seq', 18, true);
-
-
---
--- Name: cards cards_pk; Type: CONSTRAINT; Schema: public; Owner: mctg
---
-
-ALTER TABLE ONLY public.cards
-    ADD CONSTRAINT cards_pk PRIMARY KEY (id);
-
-
---
--- Name: decks decks_pkey; Type: CONSTRAINT; Schema: public; Owner: mctg
---
-
-ALTER TABLE ONLY public.decks
-    ADD CONSTRAINT decks_pkey PRIMARY KEY (id);
-
-
---
--- Name: packages pacakges_pk; Type: CONSTRAINT; Schema: public; Owner: mctg
---
-
-ALTER TABLE ONLY public.packages
-    ADD CONSTRAINT pacakges_pk PRIMARY KEY (id);
-
-
 --
 -- Name: currently_logged_in pk_currently_logged_in_username; Type: CONSTRAINT; Schema: public; Owner: mctg
 --
@@ -314,21 +296,6 @@ ALTER TABLE ONLY public.packages
 ALTER TABLE ONLY public.currently_logged_in
     ADD CONSTRAINT pk_currently_logged_in_username UNIQUE (username);
 
-
---
--- Name: trading trading_unique; Type: CONSTRAINT; Schema: public; Owner: mctg
---
-
-ALTER TABLE ONLY public.trading
-    ADD CONSTRAINT trading_unique UNIQUE (id);
-
-
---
--- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: mctg
---
-
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
 
 --
@@ -385,14 +352,6 @@ ALTER TABLE ONLY public.packages
 
 ALTER TABLE ONLY public.ready_to_battle
     ADD CONSTRAINT ready_to_battle_users_fk FOREIGN KEY (user_id) REFERENCES public.users(id);
-
-
---
--- Name: trading trading_cards_fk; Type: FK CONSTRAINT; Schema: public; Owner: mctg
---
-
-ALTER TABLE ONLY public.trading
-    ADD CONSTRAINT trading_cards_fk FOREIGN KEY (card_id) REFERENCES public.cards(id);
 
 
 --
